@@ -35,6 +35,7 @@ namespace fms::array {
 
             booking++;
         }
+        csvin.close();
     }
 
     void reserve() {}

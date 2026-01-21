@@ -52,6 +52,7 @@ namespace fms::llist {
 
             push_book(booking);
         }
+        csvin.close();
     }
 
     void reserve() {}
