@@ -43,28 +43,6 @@ string formatPassengerID(int id) {
 }
 
 
-bool parsePassengerIDInput(const string& input, int& outID) {
-    if (input.empty()) return false;
-
-    string s = input;
-    if (s.size() >= 2 && (s[0] == 'I' || s[0] == 'i') && (s[1] == 'D' || s[1] == 'd')) {
-        s = s.substr(2);
-    }
-
-    if (s.empty()) return false;
-
-    for (char ch : s) {
-        if (!isdigit(static_cast<unsigned char>(ch))) return false;
-    }
-
-    try {
-        outID = stoi(s);
-        return true;
-    } catch (...) {
-        return false;
-    }
-}
-
 bool isValidClass(char seatClass) {
     seatClass = static_cast<char>(toupper(static_cast<unsigned char>(seatClass)));
     return (seatClass == 'F' || seatClass == 'B' || seatClass == 'E');
@@ -252,12 +230,7 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
     cout << "Passenger ID: " << formatPassengerID(grid[r][cIndex].p.passengerID) << "\n";
 
 
-    appendReservation(DATA_FILE,
-                       grid[r][cIndex].p.passengerID,
-                       grid[r][cIndex].p.name,
-                       row,
-                       col,
-                       seatClass);
+    appendReservation(DATA_FILE, grid[r][cIndex].p.passengerID, grid[r][cIndex].p.name, row, col, seatClass);
 
 }
 
@@ -268,10 +241,7 @@ void cancellation(SeatGrid& grid) {
     cin >> input;
 
     int pid;
-    if (!parsePassengerIDInput(input, pid)) {
-        cout << "Invalid Passenger ID.\n";
-        return;
-    }
+
 
     bool freedSeat = false;
 
