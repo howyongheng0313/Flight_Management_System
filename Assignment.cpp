@@ -30,12 +30,12 @@ using SeatGrid = array<array<SeatCell, MAX_COLS>, MAX_ROWS>;
 
 
 int colToIndex(char col) {
-    col = static_cast<char>(toupper(static_cast<unsigned char>(col)));
+    col = toupper(col);
     if (col < 'A' || col > 'F') return -1;
     return col - 'A';
 }
 char indexToCol(int idx) {
-    return static_cast<char>('A' + idx);
+    return 'A' + idx;
 }
 
 string formatPassengerID(int id) {
@@ -44,13 +44,13 @@ string formatPassengerID(int id) {
 
 
 bool isValidClass(char seatClass) {
-    seatClass = static_cast<char>(toupper(static_cast<unsigned char>(seatClass)));
+    seatClass = toupper(seatClass);
     return (seatClass == 'F' || seatClass == 'B' || seatClass == 'E');
 }
 
 
 bool isValidRow(char seatClass, int row) {
-    seatClass = static_cast<char>(toupper(static_cast<unsigned char>(seatClass)));
+    seatClass = toupper(seatClass);
 
     if (seatClass == 'F') return (row >= 1 && row <= 3);
     if (seatClass == 'B') return (row >= 4 && row <= 10);
@@ -82,7 +82,7 @@ int getMaxPassengerID(const string& filename) {
 }
 
 string classFullName(char seatClass) {
-    seatClass = static_cast<char>(toupper(static_cast<unsigned char>(seatClass)));
+    seatClass = toupper(seatClass);
 
     if (seatClass == 'F') return "First";
     if (seatClass == 'B') return "Business";
@@ -146,7 +146,7 @@ bool deletePassengerFromCSV(const string& filename, int pidToDelete) {
 
     remove(filename.c_str());
     rename(tempFile.c_str(), filename.c_str());
-    
+
     return found;
 }
 
@@ -156,7 +156,7 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
     char seatClass;
     cout << "Select class (F = First / B = Business / E = Economy): ";
     cin >> seatClass;
-    seatClass = static_cast<char>(toupper(static_cast<unsigned char>(seatClass)));
+    seatClass = toupper(seatClass);
 
     if (!isValidClass(seatClass)) {
         cout << "Invalid class.\n";
@@ -198,7 +198,7 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
     char col;
     cout << "Select a column: ";
     cin >> col;
-    col = static_cast<char>(toupper(static_cast<unsigned char>(col)));
+    col = toupper(col);
 
     int cIndex = colToIndex(col);
     if (cIndex == -1) {
@@ -312,7 +312,7 @@ int main() {
         cout << "    3. Seat Lookup (Use passengerId)\n";
         cout << "    4. Print Seating Chart\n";
         cout << "    5. Print Passenger Manifest\n";
-        cout << "    6. Exit\n";
+        cout << "    6. Return Main Menu\n";
         cout << "Select a feature: ";
 
         int choice;
@@ -323,7 +323,7 @@ int main() {
         } else if (choice == 2) {
             cancellation(grid);
         } else if (choice == 6) {
-            cout << "Thank You for Using.\n";
+            cout << "Return Main Menu.\n";
             break;
         } else {
             cout << "Invalid choice.\n";
