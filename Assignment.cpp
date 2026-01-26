@@ -113,7 +113,6 @@ bool deletePassengerFromCSV(const string& filename, int pidToDelete) {
     while (getline(inFile, line)) {
         if (line.empty()) continue;
 
-        // Always keep header
         if (firstLine) {
             firstLine = false;
             outFile << line << "\n";
@@ -147,13 +146,11 @@ bool deletePassengerFromCSV(const string& filename, int pidToDelete) {
 
     remove(filename.c_str());
     rename(tempFile.c_str(), filename.c_str());
-
+    
     return found;
 }
 
 
-
-// 1) Reservation
 void reservation(SeatGrid& grid, int& nextPassengerID) {
 
     char seatClass;
@@ -180,7 +177,6 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
         return;
     }
 
-    // Show available columns in that row
     cout << "Available column = [";
     bool anyAvailable = false;
     int r = row - 1;
@@ -220,7 +216,6 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
     string name;
     getline(cin, name);
 
-    // Allocate seat
     grid[r][cIndex].isOccupied = true;
     grid[r][cIndex].p.passengerID = nextPassengerID++;
     grid[r][cIndex].p.name = name;
@@ -233,6 +228,31 @@ void reservation(SeatGrid& grid, int& nextPassengerID) {
     appendReservation(DATA_FILE, grid[r][cIndex].p.passengerID, grid[r][cIndex].p.name, row, col, seatClass);
 
 }
+bool PassengerIDInput(const string& input, int& outID) {
+    if (input.empty()) return false;
+
+    string s = input;
+
+    if (s.size() >= 2 &&
+        (s[0] == 'I' || s[0] == 'i') &&
+        (s[1] == 'D' || s[1] == 'd')) {
+        s = s.substr(2);
+    }
+
+    if (s.empty()) return false;
+
+    for (char ch : s) {
+        if (!isdigit(static_cast<unsigned char>(ch))) return false;
+    }
+
+    try {
+        outID = stoi(s);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 
 void cancellation(SeatGrid& grid) {
     cout << "Enter Passenger ID (e.g. 100001): ";
@@ -242,8 +262,12 @@ void cancellation(SeatGrid& grid) {
 
     int pid;
 
+    if (!PassengerIDInput(input, pid)) {
+        cout << "Invalid Passenger ID format.\n";
+        return;
+    }
 
-    bool freedSeat = false;
+    bool freeSeat = false;
 
     bool deleted = deletePassengerFromCSV(DATA_FILE, pid);
 
@@ -264,11 +288,11 @@ void cancellation(SeatGrid& grid) {
                 grid[r][c].p = Passenger{};
 
                 cout << "Seat " << seatRow << seatCol << " is now free.\n";
-                freedSeat = true;
+                freeSeat = true;
                 break;
             }
         }
-        if (freedSeat) break;
+        if (freeSeat) break;
     }
 
 }
