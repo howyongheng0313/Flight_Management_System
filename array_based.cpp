@@ -278,7 +278,7 @@
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
-        cout << "[System] Space Complexity: O(R*C) for mapping array.\n";
+        cout << "[System] Space Complexity: O(R_class*C) | Extra Space: O(1)\n";
     };
 
     printMetrics();
@@ -362,7 +362,7 @@
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
-        cout << "[System] Space Complexity: O(R*C) for mapping array.\n";
+        cout << "[System] Space Complexity: O(N + R*C) | Extra Space: O(1)\n";
     };
 
     printMetrics();
@@ -375,7 +375,7 @@
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
-        cout << "[System] Space Complexity: O(R*C) for mapping array.\n";
+        cout << "[System] Space Complexity: O(N) | Extra Space: O(1)\n";
     };
 
     cout << "Enter Passenger ID (e.g. 100001): ";
