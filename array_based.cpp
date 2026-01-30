@@ -19,7 +19,6 @@
     const int MAX_ROWS = 30;
     const int MAX_COLS = 6;
 
-
     static const string CSV_FILE = "./dataset/flight_passenger_data.csv";
 
     namespace fms::array {
@@ -28,8 +27,12 @@
         int bookingCount = 0;
         int seat_map[31][6]; 
 
+    int linearSearch(){
+        return 0;
+    }
 
-        void setup() {
+    void setup() {
+
     bookingCount = 0;
 
     for (int r = 0; r <= 30; r++)
@@ -67,7 +70,65 @@
 
     csvin.close();
 }
+    int linearSearchByID(const string& targetID) {
+        for (int i = 0; i < MAX_BOOKING; i++) {
+            
+            if (book_ls[i].psg_id == targetID) {
+                return i; 
+            }
+        }
+        return -1; 
+    }
 
+    int linearSearchBySeat(int row, char col) {
+        for (int i = 0; i < MAX_BOOKING; i++) {
+            if (book_ls[i].psg_id.empty()) continue;
+
+            if (book_ls[i].seat_row == row && book_ls[i].seat_col == col) {
+                return i; 
+            }
+        }
+        return -1;
+    }
+
+    // Bubble sort：Arrange based on row and column
+    void bubbleSortByRow(BookItem arr[], int count) {
+        for (int i = 0; i < count - 1; i++) {
+            for (int j = 0; j < count - i - 1; j++) {
+                bool swap_needed = false;
+                
+                if (arr[j].seat_row > arr[j + 1].seat_row) {
+                    swap_needed = true;
+                }
+                
+                else if (arr[j].seat_row == arr[j + 1].seat_row && arr[j].seat_col > arr[j + 1].seat_col) {
+                    swap_needed = true;
+                }
+
+                if (swap_needed) {
+                    BookItem temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                }
+            }
+        }
+    }
+    
+    //Linear Search for Reservation
+    bool LinearSearchEmptySeat(int rowMin, int rowMax, int& outRow, int& outColIdx) {
+    for (int r = rowMin; r <= rowMax; r++) {
+        for (int c = 0; c < 6; c++) {
+            if (seat_map[r][c] == -1) {
+                outRow = r;
+                outColIdx = c;
+                return true;
+            }
+        }
+    }
+    outRow = -1;
+    outColIdx = -1;
+    return false;
+}
 
     string formatPassengerID(int id) {
         return "ID" + to_string(id);
@@ -209,14 +270,14 @@
     }
 }
 
-        //reservation function
+    //reservation function
     void reserve() {
     auto start = std::chrono::high_resolution_clock::now();
 
 
     char seatClass;
     cout << "Select class (F = First / B = Business / E = Economy): ";
-    cin >> seatClass;
+    cin >> seatClass; 
     seatClass = toupper(seatClass);
 
     if (!isValidClass(seatClass)) {
@@ -237,20 +298,10 @@
     int assignRow = -1;
     int assignColIdx = -1;
 
-    for (int r = rowMin; r <= rowMax && assignRow == -1; r++) {
-        for (int c = 0; c < 6; c++) {
-            if (seat_map[r][c] == -1) {
-                assignRow = r;
-                assignColIdx = c;
-                break;
-            }
-        }
-    }
-
-    if (assignRow == -1) {
-        cout << "No available seats in " << classFullName(seatClass) << " Class.\n";
-        return;
-    }
+    if (!LinearSearchEmptySeat(rowMin, rowMax, assignRow, assignColIdx)) {
+    cout << "No available seats in " << classFullName(seatClass) << " Class.\n";
+    return;
+}
 
     char assignColChar = char('A' + assignColIdx);
     int nextPassengerID = getMaxPassengerID() + 1;
@@ -324,16 +375,8 @@
         return;
     }
 
-    int idx = -1;
-    for (int i = 0; i < bookingCount; i++) {
-        try {
-            if (!book_ls[i].psg_id.empty() && stoi(book_ls[i].psg_id) == pid) {
-                idx = i;
-                break;
-            }
-        } catch (...) {}
-    }
-
+    int idx = linearSearchByID(to_string(pid));
+ 
     if (idx == -1) {
         cout << formatPassengerID(pid) << " not found in Reservation List.\n";
         return;
@@ -362,7 +405,7 @@
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
-        cout << "[System] Space Complexity: O(N + R*C) | Extra Space: O(1)\n";
+        cout << "[System] Space Complexity: O(R * C) | Extra Space: O(1)\n";
     };
 
     printMetrics();
@@ -375,7 +418,7 @@
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
         cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
-        cout << "[System] Space Complexity: O(N) | Extra Space: O(1)\n";
+        cout << "[System] Extra Space: O(1) | Search: Linear O(N)\n";
     };
 
     cout << "Enter Passenger ID (e.g. 100001): ";
@@ -389,65 +432,140 @@
         return;
     }
 
-    for (int i = 0; i < bookingCount; i++) {
-        if (book_ls[i].psg_id.empty()) continue;
+    int idx = linearSearchByID(to_string(pid));
 
-        int idInMem = -1;
-        try { idInMem = stoi(book_ls[i].psg_id); } catch (...) { continue; }
-
-        if (idInMem == pid) {
-            cout << "Passenger Found - Name: " << book_ls[i].psg_name
-                 << " | Seat: " << book_ls[i].seat_row << book_ls[i].seat_col
-                 << "\n";
-            printMetrics();
-            return;
-        }
+    if (idx == -1) {
+        cout << "Passenger not found.\n";
+        printMetrics();
+        return;
     }
 
-    cout << "Passenger not found.\n";
+    cout << "Passenger Found - Name: " << book_ls[idx].psg_name
+         << " | Seat: " << book_ls[idx].seat_row << book_ls[idx].seat_col
+         << "\n";
+
     printMetrics();
 }
 
 
 
-    void print_seat() {
-            string grid[MAX_ROWS + 1][6]; 
 
-            for (int r = 1; r <= MAX_ROWS; r++)
-                for (int c = 0; c < 6; c++) grid[r][c] = "Empty";
+    void get_seat_mapping(int seat_map[31][6]) {
 
-            for (const auto& item : book_ls) {
-                if (item.psg_id.empty()) continue;
-                grid[item.seat_row][item.seat_col - 'A'] = item.psg_id; 
+        // Initialize with -1 (Empty)
+        for (int r = 0; r <= 30; r++) {
+            for (int c = 0; c < 6; c++) {
+                seat_map[r][c] = -1;
             }
-
-            // Print header
-            std::cout << "\n" << string(56, '=') << "\n";
-            std::cout << "\t\t   FLIGHT SEATING CHART\n";
-            std::cout << string(56, '=') << "\n    ";
-            
-            // Print column labels
-            for (char c = 'A'; c <= 'F'; c++) {
-                std::cout << "   " << c << "     "; 
-            }
-            std::cout << "\n";
-
-            for (int r = 1; r <= MAX_ROWS; r++) {
-                if (r == 1) std::cout << "\n--- FIRST CLASS ---\n";
-                else if (r == 4) std::cout << "\n--- BUSINESS CLASS ---\n";
-                else if (r == 11) std::cout << "\n--- ECONOMY CLASS ---\n"; 
-
-                std::cout << std::setw(2) << r << " ";
-                for (int c = 0; c < 6; c++) {
-                    std::cout << "[" << std::setw(6) << grid[r][c] << "] ";
-                }
-                std::cout << "\n";
-            }
-            std::cout << std::endl;
         }
 
+        for (int i = 0; i < MAX_BOOKING; i++) {
+            if (book_ls[i].psg_id.empty()) continue;
 
-        void print_passenger() {}
+            int r = book_ls[i].seat_row;
+            int c = toupper(book_ls[i].seat_col) - 'A';
+
+            // Error Handling: Bounds validation to prevent memory corruption
+            if (r >= 1 && r <= 30 && c >= 0 && c < 6) {
+                // FCFS (First-Come, First-Served) Logic
+                if (seat_map[r][c] == -1) {
+                    seat_map[r][c] = i;
+                }
+            }
+        }
+    }
+
+    void print_seat() {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        cout << "\n" << std::string(64, '=') << "\n";
+        cout << "\t\t   FLIGHT SEATING CHART\n";
+        cout << std::string(64, '=') << "\n";
+        cout << "      A       B       C       D       E       F\n";
+
+        for (int r = 1; r <= 30; r++) {
+            // 根据 CSV 真实数据调整的分类边界
+            if (r == 1) 
+                cout << "\n--- [ FIRST CLASS (Rows 1-3) ] ---\n";
+            else if (r == 4) 
+                cout << "\n--- [ BUSINESS CLASS (Rows 4-10) ] ---\n";
+            else if (r == 11) 
+                cout << "\n--- [ ECONOMY CLASS (Rows 11-30) ] ---\n";
+
+            std::cout << std::setw(2) << r << " ";
+            for (int c = 0; c < 6; c++) {
+                // 调用共享算法：线性搜索
+                int idx = linearSearchBySeat(r, 'A' + c);
+                
+                if (idx != -1) {
+                    cout << "[" << std::setw(5) << book_ls[idx].psg_id << "] ";
+                } else {
+                    cout << "[ --- ] ";
+                }
+            }
+            cout << "\n";
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        
+        cout << std::string(64, '=') << "\n";
+        cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
+        cout << "[System] Complexity: O(R*C*N) via Linear Search\n";
+        cout << std::endl;
+    }
+
+    // ======================================================
+    // 改进后的 print_passenger：应用冒泡排序与正确分类显示
+    // ======================================================
+    void print_passenger() {
+        auto start = std::chrono::high_resolution_clock::now();
+
+        // 1. 数据准备：利用线性搜索获取 180 个座位中“先到先得”的乘客
+        BookItem manifest[180];
+        int count = 0;
+        for (int r = 1; r <= 30; r++) {
+            for (int c = 0; c < 6; c++) {
+                int idx = linearSearchBySeat(r, 'A' + c);
+                if (idx != -1) {
+                    manifest[count++] = book_ls[idx];
+                }
+            }
+        }
+
+        // 2. 调用共享算法：冒泡排序 (按行号升序)
+        bubbleSortByRow(manifest, count);
+
+        // --- UI 渲染部分 ---
+        cout << "\n" << string(64, '=') << "\n";
+        cout << "\t\t   PASSENGER MANIFEST\n";
+        cout << string(64, '=') << "\n";
+        cout << left << setw(8) << "Seat" 
+                  << setw(12) << "ID" 
+                  << setw(25) << "Name" << "Class\n";
+        cout << string(64, '-') << "\n";
+
+        for (int i = 0; i < count; i++) {
+            const BookItem& p = manifest[i];
+            string seat_label = to_string(p.seat_row) + p.seat_col;
+            
+            // 根据数据结构中的 seat_class 字符映射完整名称
+            string class_full = (p.seat_class == 'F') ? "First" : 
+                                     (p.seat_class == 'B') ? "Business" : "Economy";
+
+            cout << left << setw(8) << seat_label 
+                      << setw(12) << p.psg_id 
+                      << setw(25) << p.psg_name << class_full << "\n";
+        }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+        cout << string(64, '=') << endl;
+        cout << "[System] Execution Time: " << duration.count() << " microseconds.\n";
+        cout << "[System] Complexity: O(n^2) via Bubble Sort\n";
+        cout << endl;
+    }
 
         void teardown() {}
     }
