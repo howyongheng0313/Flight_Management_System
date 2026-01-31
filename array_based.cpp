@@ -11,9 +11,9 @@
 #include <chrono>
 
 using std::getline,
-    std::string,
-    std::ifstream,
-    std::stringstream;
+      std::string,
+      std::ifstream,
+      std::stringstream;
 using namespace std;
 
 const int MAX_ROWS = 30;
@@ -70,6 +70,11 @@ namespace fms::array {
         csvin.close();
     }
 
+    //---------------------------------
+    // Searching and Sorting Algorithms
+    //---------------------------------
+
+    // Linear search by passenger ID
     int linearSearchByID(const string& targetID) {
         for (int i = 0; i < MAX_BOOKING; i++) {
             if (book_ls[i].psg_id == targetID) {
@@ -79,6 +84,7 @@ namespace fms::array {
         return -1;
     }
 
+    // Linear search by passenger seat
     int linearSearchBySeat(int row, char col) {
         for (int i = 0; i < MAX_BOOKING; i++) {
             if (book_ls[i].psg_id.empty()) continue;
@@ -90,7 +96,7 @@ namespace fms::array {
         return -1;
     }
 
-    // Bubble sort：Arrange based on row and column
+    // Bubble sort (Sort based on row and column)
     void bubbleSortByRow(BookItem arr[], int count) {
         for (int i = 0; i < count - 1; i++) {
             for (int j = 0; j < count - i - 1; j++) {
@@ -127,31 +133,22 @@ namespace fms::array {
         return false;
     }
 
+    //---------------------------------
+    // Helper Function
+    //---------------------------------
+
+    // Format Passenger ID
     string formatPassengerID(int id) {
         return "ID" + to_string(id);
     }
 
-    int colToIndex(char col) {
-        col = toupper(col);
-        if (col < 'A' || col > 'F') return -1;
-        return col - 'A';
-    }
-
+    // Class validation
     bool isValidClass(char seatClass) {
         seatClass = toupper(seatClass);
         return (seatClass == 'F' || seatClass == 'B' || seatClass == 'E');
     }
 
-    bool isValidRow(char seatClass, int row) {
-        seatClass = toupper(seatClass);
-
-        if (seatClass == 'F') return (row >= 1 && row <= 3);
-        if (seatClass == 'B') return (row >= 4 && row <= 10);
-        if (seatClass == 'E') return (row >= 11 && row <= 30);
-
-        return false;
-    }
-
+    // Get maximum passenger ID
     int getMaxPassengerID() {
         ifstream in(CSV_FILE);
         if (!in.is_open()) return 999;
@@ -173,6 +170,7 @@ namespace fms::array {
         return maxID;
     }
 
+    // Class to full name
     string classFullName(char seatClass) {
         seatClass = toupper(seatClass);
 
@@ -181,9 +179,38 @@ namespace fms::array {
         return "Economy";
     }
 
-    // reservation function
+    // Passenger ID Input
+    bool PassengerIDInput(const string& input, int& outID) {
+        if (input.empty()) return false;
+
+        string s = input;
+
+        if (s.size() >= 2 &&
+            (s[0] == 'I' || s[0] == 'i') &&
+            (s[1] == 'D' || s[1] == 'd')) {
+            s = s.substr(2);
+        }
+
+        if (s.empty()) return false;
+
+        for (char ch : s) {
+            if (!isdigit((ch))) return false;
+        }
+
+        try {
+            outID = stoi(s);
+            return true;
+        } catch (...) {
+            return false;
+        }
+    }
+
+    //---------------------------------
+    // Main Functions
+    //---------------------------------
+
+    // Reservation function
     void reserve() {
-        auto start = std::chrono::high_resolution_clock::now();
 
         char seatClass;
         cout << "Select class (F = First / B = Business / E = Economy): ";
@@ -204,6 +231,8 @@ namespace fms::array {
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         string name;
         getline(cin, name);
+
+        auto start = std::chrono::high_resolution_clock::now();
 
         int assignRow = -1;
         int assignColIdx = -1;
@@ -251,35 +280,11 @@ namespace fms::array {
         };
 
         printMetrics();
+        std::cout << std::endl;
     }
 
-    bool PassengerIDInput(const string& input, int& outID) {
-        if (input.empty()) return false;
-
-        string s = input;
-
-        if (s.size() >= 2 &&
-            (s[0] == 'I' || s[0] == 'i') &&
-            (s[1] == 'D' || s[1] == 'd')) {
-            s = s.substr(2);
-        }
-
-        if (s.empty()) return false;
-
-        for (char ch : s) {
-            if (!isdigit((ch))) return false;
-        }
-
-        try {
-            outID = stoi(s);
-            return true;
-        } catch (...) {
-            return false;
-        }
-    }
-
+    // Cancellation function
     void cancel() {
-        auto start = std::chrono::high_resolution_clock::now();
 
         cout << "Enter Passenger ID (e.g. 100001): ";
         string input;
@@ -290,6 +295,8 @@ namespace fms::array {
             cout << "Invalid Passenger ID format.\n";
             return;
         }
+
+        auto start = std::chrono::high_resolution_clock::now();
 
         auto deletePassenger = [&](const string& filename, int pidToDelete, int& deletedSeatRow, char& deletedSeatCol) -> bool {
             ifstream inFile(filename);
@@ -386,9 +393,18 @@ namespace fms::array {
         };
 
         printMetrics();
+        std::cout << std::endl;
     }
 
+    // Lookup function
     void lookup() {
+
+        cout << "Enter Passenger ID (e.g. 100001): ";
+        string input;
+        cin >> input;
+
+        int pid;
+
         auto start = std::chrono::high_resolution_clock::now();
 
         auto printMetrics = [&]() {
@@ -398,11 +414,6 @@ namespace fms::array {
             cout << "[System] Extra Space: O(1) | Search: Linear O(N)\n";
         };
 
-        cout << "Enter Passenger ID (e.g. 100001): ";
-        string input;
-        cin >> input;
-
-        int pid;
         if (!PassengerIDInput(input, pid)) {
             cout << "Invalid Passenger ID format.\n";
             printMetrics();
@@ -422,32 +433,10 @@ namespace fms::array {
              << "\n";
 
         printMetrics();
+        std::cout << std::endl;
     }
 
-    void get_seat_mapping(int seat_map[31][6]) {
-        // Initialize with -1 (Empty)
-        for (int r = 0; r <= 30; r++) {
-            for (int c = 0; c < 6; c++) {
-                seat_map[r][c] = -1;
-            }
-        }
-
-        for (int i = 0; i < MAX_BOOKING; i++) {
-            if (book_ls[i].psg_id.empty()) continue;
-
-            int r = book_ls[i].seat_row;
-            int c = toupper(book_ls[i].seat_col) - 'A';
-
-            // Error Handling: Bounds validation to prevent memory corruption
-            if (r >= 1 && r <= 30 && c >= 0 && c < 6) {
-                // FCFS (First-Come, First-Served) Logic
-                if (seat_map[r][c] == -1) {
-                    seat_map[r][c] = i;
-                }
-            }
-        }
-    }
-
+    // Print Seating Chart
     void print_seat() {
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -486,6 +475,7 @@ namespace fms::array {
         cout << std::endl;
     }
 
+    // Print Passenger List
     void print_passenger() {
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -530,5 +520,4 @@ namespace fms::array {
         cout << "[System] Complexity: O(n^2) via Bubble Sort\n";
         cout << endl;
     }
-
 } 
