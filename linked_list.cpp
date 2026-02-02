@@ -55,6 +55,26 @@ namespace fms::llist {
         csvin.close();
     }
 
+    BookItem *linear_search_by_id(const string& targetId, BookItem *entry = book_head) {
+        BookItem *curr = entry;
+        while (curr) {
+            if (curr->psg_id == targetId)
+                return curr;
+            curr = curr->next;
+        }
+        return nullptr;
+    }
+
+    BookItem *linear_search_by_seat(int row, char col, BookItem *entry = book_head) {
+        BookItem *curr = entry;
+        while (curr) {
+            if (curr->seat_row == row && curr->seat_col == col)
+                return curr;
+            curr = curr->next;
+        }
+        return nullptr;
+    }
+
     void reserve() {}
 
     void cancel() {}
