@@ -1,32 +1,48 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "include/array_based.hpp"
 #include <string>
-#include <array>
 #include <cctype>
 #include <limits>
 #include <iomanip>
 #include <cstdio>
 #include <chrono>
+#include "include/array_based.hpp"
 
-using std::getline,
+using std::cout,
+      std::cin,
+      std::left,
+      std::setw,
+      std::endl,
+      std::getline,
+      std::to_string,
+      std::ios,
       std::string,
       std::ifstream,
-      std::stringstream;
-using namespace std;
-
-const int MAX_ROWS = 30;
-const int MAX_COLS = 6;
+      std::ofstream,
+      std::stringstream,
+      std::numeric_limits,
+      std::streamsize;
 
 static const string CSV_FILE = "./dataset/flight_passenger_data.csv";
 
 namespace fms::array {
+    struct BookItem {
+        std::string psg_id;
+        std::string psg_name;
+        int seat_row;
+        char seat_col;
+        char seat_class;
+
+        bool is_assigned;
+        bool is_new_reservation; // Track new vs historical data
+        bool was_dispatched;
+    };
 
     BookItem book_ls[MAX_BOOKING];
 
     int bookingCount = 0;
-    int seat_map[31][6];
+    int seat_map[31][6];  // TODO: Fix wrong row range
 
     void setup() {
 
@@ -520,4 +536,4 @@ namespace fms::array {
         cout << "[System] Complexity: O(n^2) via Bubble Sort\n";
         cout << endl;
     }
-} 
+}

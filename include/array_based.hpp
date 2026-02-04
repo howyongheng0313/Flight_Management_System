@@ -5,17 +5,13 @@
 
 namespace fms::array {
     constexpr int MAX_BOOKING = 16384;
+    constexpr int MAX_ROWS = 30;
+    constexpr int MAX_COLS = 6;
 
-    struct BookItem {
-        std::string psg_id;
-        std::string psg_name;
-        int seat_row;
-        char seat_col;
-        char seat_class;
-    };
+    struct BookItem;
 
     void setup();
-
+    void auto_fill();
     void reserve();
     void cancel();
     void auto_fill();
@@ -24,6 +20,7 @@ namespace fms::array {
     void print_passenger();
     void dispatch();
 
-    void teardown();
+    int linearSearchByID(const std::string& targetID);
+    void bubbleSortByID(BookItem arr[], int n);
 }
 #endif
