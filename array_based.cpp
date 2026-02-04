@@ -131,7 +131,6 @@ namespace fms::array {
         char sc;
     bool isValid = false;
 
-    // 1. Improved Validation Loop
     while (!isValid) {
         cout << "Select Class (F = First / B = Business / E = Economy): ";
         cin >> sc;
