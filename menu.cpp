@@ -93,7 +93,7 @@ namespace fms::menu {
         cout << title << endl
              << "    1. Reservation (Allocate Seat)" << endl
              << "    2. Cancellation (Remove Passenger)" << endl
-             << "    3. Auto Filling" << endl
+             << "    3. Auto Fill Seating" << endl
              << "    4. Seat Lookup (Use passengerId)" << endl
              << "    5. Print Seating Chart" << endl
              << "    6. Print Passenger Manifest" << endl
