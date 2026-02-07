@@ -152,7 +152,7 @@ namespace fms::array {
         }
         auto stop = high_resolution_clock::now();
         cout << "[System] Auto-fill complete. " << sync << " historical records synchronized.\n";
-        cout << "[Performance] Sync Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "[Performance] Sync Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
     }
 
     void reserve() {
@@ -196,7 +196,7 @@ namespace fms::array {
         auto stop = high_resolution_clock::now();
 
         cout << "Reservation Successful! ID: " << id << " | Seat: " << r << (char)('A' + c) << "\n";
-        cout << "Reservation Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Reservation Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
         cout << endl;
     }
 
@@ -216,7 +216,7 @@ namespace fms::array {
 
         auto stop = high_resolution_clock::now();
         cout << "Cancellation confirmed. Seat " << book_ls[idx].seat_row << book_ls[idx].seat_col << " is now available.\n";
-        cout << "Cancellation Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Cancellation Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
         cout << endl;
     }
 
@@ -237,7 +237,7 @@ namespace fms::array {
         } else {
             cout << "[System] Passenger not found.\n";
         }
-        cout << "Lookup (Search) Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Lookup (Search) Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
         cout << endl;
     }
 
@@ -265,7 +265,7 @@ namespace fms::array {
         auto stop = high_resolution_clock::now();
 
         cout << string(64, '=') << "\n";
-        cout << "Print Seating Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Print Seating Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
         cout << endl;
     }
 
@@ -294,7 +294,7 @@ namespace fms::array {
                  << (m[i].seat_class == 'F' ? "First" : (m[i].seat_class == 'B' ? "Business" : "Economy")) << "\n";
         }
         cout << string(64, '=') << "\n";
-        cout << "Manifest Sorting: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Manifest Sorting: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
         cout << endl;
     }
 
@@ -315,6 +315,6 @@ namespace fms::array {
         auto stop = high_resolution_clock::now();
 
         cout << "Dispatch Complete. Session cleared and records marked.\n";
-        cout << "Dispatch Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
+        cout << "Dispatch Execution Time: " << duration_cast<milliseconds>(stop - start).count() << " ms\n";
     }
 }
