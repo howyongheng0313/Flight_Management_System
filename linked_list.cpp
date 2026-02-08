@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <chrono>
@@ -10,6 +11,9 @@ using std::cout,
       std::getline,
       std::stoi,
       std::to_string,
+      std::min,
+      std::setw,
+      std::left,
       std::string,
       std::ifstream,
       std::stringstream;
@@ -98,7 +102,6 @@ namespace fms::llist {
 
     struct SeatRow {
         Seat *row_head;
-        Seat *row_tail;
         int row;
         SeatRow *next;
     };
@@ -150,7 +153,6 @@ namespace fms::llist {
             if (!curr_row || curr_row->row > seat.row) {
                 SeatRow *new_row = new SeatRow();
                 new_row->row_head = nullptr;
-                new_row->row_tail = nullptr;
                 new_row->next = curr_row;
                 new_row->row = seat.row;
 
@@ -183,7 +185,7 @@ namespace fms::llist {
         }
     }
 
-    BookList book_ls { nullptr, nullptr };
+    BookList book_ls { nullptr };
     SeatMap seat_map { nullptr };
 
     void setup() {
@@ -218,13 +220,13 @@ namespace fms::llist {
             }
         }
 
-        auto end = high_resolution_clock::now();
+        auto stop = high_resolution_clock::now();
 
         csvin.close();
 
-        auto duration = duration_cast<microseconds>(end - start);
-        cout << "[System] Execution Time: " << duration.count() << "µs." << endl
-             << "[System] Space Complexity: O(n) | Extra Space: O(n)" << endl
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
+             << "[System] Space Complexity: O(n) | Extra Space: O(1)" << endl
              << endl;
     }
 
@@ -243,6 +245,8 @@ namespace fms::llist {
         cout << "Enter Passenger Name: ";
         getline(cin, name);
 
+        auto start = high_resolution_clock::now();
+
         int assign_row;
         char assign_col;
         if (!seat_map.linear_search_empty_seat(seatclass, assign_row, assign_col)) {
@@ -259,19 +263,193 @@ namespace fms::llist {
 
         book_ls.push(booking);
         seat_map.insert_seat(booking->seat);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Reservation Successful! ID: " << booking->psg_id << " | Seat: " << assign_row << assign_col << endl;
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
+             << "[System] Space Complexity (Search Empty Seat): O(Rmin + Rtar*C) | Extra Space: O(1)" << endl
+             << "         Space Complexity (Insert Seat): O(R + C) | Extra Space: O(1)" << endl
+             << endl;
     }
 
     void cancel() {}
 
     void auto_fill() {}
 
-    void lookup() {}
+    void lookup() {
+        string target_id;
+        cout << "Enter Passenger ID: ";
+        cin >> target_id;
 
-    void print_seat() {}
+        auto start = high_resolution_clock::now();
+        BookItem *target = book_ls.linear_search_by_id(target_id, nullptr);
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
 
-    void print_passenger() {}
+        if (target) {
+            cout << "-----------------------------" << endl
+                 << " PASSENGER FOUND" << endl
+                 << "-----------------------------" << endl
+                 << " Name  : " << target->psg_name << endl
+                 << " Seat  : " << target->seat.row << target->seat.col << endl
+                 << " Class : " << class_full_name(target->seat.seatclass) << endl
+                 << "-----------------------------" << endl;
+        } else {
+            cout << "Passenger not found." << endl;
+        }
 
-    void dispatch() {}
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
+             << "[System] Space Complexity: O(n) | Extra Space: O(1)" << endl
+             << endl;
+    }
+
+    void print_seat() {
+        cout << string(64, '=') << endl
+             << string(22, ' ') << "FLIGHT SEATING CHART" << endl
+             << string(64, '=') << endl
+             << "      A        B        C        D        E        F" << endl;
+
+        auto start = high_resolution_clock::now();
+
+        int next_class = 1;
+        int row_count = 1;
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            if (row_count >= next_class) {
+                if (next_class == 1) {
+                    cout << endl << "--- [ FIRST CLASS (Rows 1-3) ] ---" << endl;
+                    next_class = 4;
+                } else if (next_class == 4) {
+                    cout << endl << "--- [ BUSINESS CLASS (Rows 4-10) ] ---" << endl;
+                    next_class = 11;
+                } else if (next_class == 11) {
+                    cout << endl << "--- [ ECONOMY CLASS (Rows 11-30) ] ---" << endl;
+                    next_class = 31;
+                }
+            }
+
+            if (row_count < curr_row->row) {
+                cout << "..." << endl;
+                row_count = min(curr_row->row, next_class);
+                continue;
+            }
+
+            cout << setw(2) << row_count;
+
+            char col_count = 'A';
+            Seat *curr_seat = curr_row->row_head;
+            while (col_count < 'G') {
+                if (curr_seat && curr_seat->row == col_count) {
+                    cout << " [" << curr_seat->passenger->psg_id << "]";
+                    curr_seat = curr_seat->next;
+                } else {
+                    cout << " [------]";
+                }
+                col_count++;
+            }
+
+            cout << endl;
+            curr_row = curr_row->next;
+            row_count++;
+        }
+
+        switch (next_class) {
+            case 1:
+                cout << endl << "--- [ FIRST CLASS (Rows 1-3) ] ---" << endl << "..." << endl;
+            case 4:
+                cout << endl << "--- [ BUSINESS CLASS (Rows 4-10) ] ---" << endl << "..." << endl;
+            case 11:
+                cout << endl << "--- [ ECONOMY CLASS (Rows 11-30) ] ---" << endl << "..." << endl;
+        }
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << endl;
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl;
+    }
+
+    void print_passenger() {
+        BookList psg_ls {nullptr, nullptr};
+
+        auto start = high_resolution_clock::now();
+
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat) {
+                psg_ls.push(curr_seat->passenger);
+                curr_seat = curr_seat->next;
+            }
+            curr_row = curr_row->next;
+        }
+
+        // TODO: psg_ls.sort_by_id();
+
+        auto stop = high_resolution_clock::now();
+
+        cout << endl << string(64, '=') << endl
+             << string(23, ' ') << "PASSENGER MANIFEST" << endl
+             << string(64, '=') << endl
+             << left
+             << setw(8) << "Seat"
+             << setw(12) << "ID"
+             << setw(25) << "Name"
+             << "Class" << endl
+             << string(64, '-') << endl;
+
+        BookItem *curr_psg = psg_ls.book_head;
+        while (curr_psg) {
+            string seat = to_string(curr_psg->seat.row) + curr_psg->seat.col;
+            cout << left
+                 << setw(8) << seat
+                 << setw(12) << curr_psg->psg_id
+                 << setw(25) << curr_psg->psg_name
+                 << class_full_name(curr_psg->seat.seatclass) << endl;
+        }
+
+        cout << string(64, '=') << endl;
+
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[Systen] Execution Time: " << duration.count() << " µs." << endl
+        // TODO: count the Space Complexity;
+             << "[System] Space Complexity: O(?) | Extra Space: O(?)" << endl << endl;
+    }
+
+    void dispatch() {
+        auto start = high_resolution_clock::now();
+
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat) {
+                Seat *next_seat = curr_seat->next;
+                BookItem *psg = curr_seat->passenger;
+
+                if (psg->prev) psg->prev->next = psg->next;
+                else book_ls.book_head = psg->next;
+
+                if (psg->next) psg->next->prev = psg->prev;
+                else book_ls.book_tail = psg->prev;
+
+                delete psg;
+                curr_seat = next_seat;
+            }
+
+            SeatRow *next_row = curr_row->next;
+            delete curr_row;
+            curr_row = next_row;
+        }
+        seat_map.map_head = nullptr;
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Dispatch Complete. Session cleared and records marked." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl;
+    }
 
     void teardown() {
         BookItem *curr_book = book_ls.book_head;
