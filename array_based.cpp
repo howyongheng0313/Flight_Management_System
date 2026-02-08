@@ -1,46 +1,18 @@
+#include "include/array_based.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <string>
 #include <iomanip>
 #include <chrono>
-#include "include/array_based.hpp"
+#include <string>
 
-using std::cout,
-      std::cin,
-      std::left,
-      std::setw,
-      std::endl,
-      std::getline,
-      std::to_string,
-      std::ios,
-      std::string,
-      std::ifstream,
-      std::ofstream,
-      std::stringstream,
-      std::numeric_limits,
-      std::streamsize;
-using std::chrono::high_resolution_clock,
-      std::chrono::microseconds,
-      std::chrono::duration_cast;
-
-static const string CSV_FILE = "./dataset/flight_passenger_data.csv";
+using namespace std;
+using namespace std::chrono;
 
 namespace fms::array {
-    struct BookItem {
-        std::string psg_id;
-        std::string psg_name;
-        int seat_row;
-        char seat_col;
-        char seat_class;
-
-        bool is_assigned;
-        bool is_new_reservation; // Track new vs historical data
-        bool was_dispatched;
-    };
 
     BookItem book_ls[MAX_BOOKING];
-    int seat_map[31][6];  // TODO: Fix wrong row range
+    int seat_map[31][6];
     int bookingCount = 0;
 
     static const string CSV_FILE = "./dataset/flight_passenger_data.csv";
@@ -59,10 +31,10 @@ namespace fms::array {
     bool linearSearchEmptySeat(int rowMin, int rowMax, int& outRow, int& outColIdx) {
         for (int r = rowMin; r <= rowMax; r++) {
             for (int c = 0; c < 6; c++) {
-                if (seat_map[r][c] == -1) {
-                    outRow = r;
-                    outColIdx = c;
-                    return true;
+                if (seat_map[r][c] == -1) { 
+                    outRow = r; 
+                    outColIdx = c; 
+                    return true; 
                 }
             }
         }
@@ -73,8 +45,8 @@ namespace fms::array {
         for (int i = 0; i < n - 1; i++) {
             for (int j = 0; j < n - i - 1; j++) {
                 if (stoi(arr[j].psg_id) > stoi(arr[j + 1].psg_id)) {
-                    BookItem t = arr[j];
-                    arr[j] = arr[j + 1];
+                    BookItem t = arr[j]; 
+                    arr[j] = arr[j + 1]; 
                     arr[j + 1] = t;
                 }
             }
@@ -84,18 +56,18 @@ namespace fms::array {
     int getMaxPassengerID() {
         int m = 100000;
         for (int i = 0; i < bookingCount; i++) {
-            try {
-                int c = stoi(book_ls[i].psg_id);
-                if (c > m) m = c;
+            try { 
+                int c = stoi(book_ls[i].psg_id); 
+                if (c > m) m = c; 
             } catch (...) {}
         }
         return m;
     }
 
     void rebuildSeatMap() {
-        for (int r = 0; r <= 30; r++)
+        for (int r = 0; r <= 30; r++) 
             for (int c = 0; c < 6; c++) seat_map[r][c] = -1;
-
+            
         for (int i = 0; i < bookingCount; i++) {
             if (book_ls[i].is_assigned) {
                 int r = book_ls[i].seat_row;
@@ -113,24 +85,24 @@ namespace fms::array {
 
     void setup() {
         bookingCount = 0;
-
+        
         ifstream csvin(CSV_FILE);
-        string row, header;
+        string row, header; 
         getline(csvin, header);
-
+        
         while (getline(csvin, row) && bookingCount < MAX_BOOKING) {
             stringstream ss(row); string r, c, cl;
             getline(ss, book_ls[bookingCount].psg_id, ',');
             getline(ss, book_ls[bookingCount].psg_name, ',');
             getline(ss, r, ','); getline(ss, c, ','); getline(ss, cl, ',');
-
+            
             try { book_ls[bookingCount].seat_row = stoi(r); } catch (...) {}
             book_ls[bookingCount].seat_col = (c.empty() ? '?' : (char)toupper(c[0]));
             book_ls[bookingCount].seat_class = (cl.empty() ? '?' : (char)toupper(cl[0]));
-
+            
             book_ls[bookingCount].is_new_reservation = false;
             book_ls[bookingCount].is_assigned = false;
-            book_ls[bookingCount].was_dispatched = false;
+            book_ls[bookingCount].was_dispatched = false; 
             bookingCount++;
         }
         rebuildSeatMap();
@@ -144,8 +116,8 @@ namespace fms::array {
             if (!book_ls[i].is_assigned && !book_ls[i].was_dispatched) {
                 int r = book_ls[i].seat_row, c = toupper(book_ls[i].seat_col) - 'A';
                 if (r >= 1 && r <= 30 && c >= 0 && c < 6 && seat_map[r][c] == -1) {
-                    seat_map[r][c] = i;
-                    book_ls[i].is_assigned = true;
+                    seat_map[r][c] = i; 
+                    book_ls[i].is_assigned = true; 
                     sync++;
                 }
             }
@@ -176,25 +148,25 @@ namespace fms::array {
     int rMin = (sc == 'F' ? 1 : (sc == 'B' ? 4 : 11));
     int rMax = (sc == 'F' ? 3 : (sc == 'B' ? 10 : 30));
 
-
-
-        cout << "Enter Passenger Name: "; cin.ignore();
+        
+        
+        cout << "Enter Passenger Name: "; cin.ignore(); 
         string n; getline(cin, n);
-
+        
         auto start = high_resolution_clock::now();
         int r, c;
-        if (!linearSearchEmptySeat(rMin, rMax, r, c)) {
-            cout << "[System] Error: Selected class is fully booked.\n";
-            return;
+        if (!linearSearchEmptySeat(rMin, rMax, r, c)) { 
+            cout << "[System] Error: Selected class is fully booked.\n"; 
+            return; 
         }
 
-
+        
         int id = getMaxPassengerID() + 1;
         book_ls[bookingCount] = {to_string(id), n, r, (char)('A' + c), sc, true, true, false};
-        seat_map[r][c] = bookingCount;
+        seat_map[r][c] = bookingCount; 
         bookingCount++;
         auto stop = high_resolution_clock::now();
-
+        
         cout << "Reservation Successful! ID: " << id << " | Seat: " << r << (char)('A' + c) << "\n";
         cout << "Reservation Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
         cout << endl;
@@ -204,16 +176,16 @@ namespace fms::array {
         string t; cout << "Enter Passenger ID to Cancel: "; cin >> t;
         auto start = high_resolution_clock::now();
         int idx = linearSearchByID(t);
-
-        if (idx == -1) {
-            cout << "[System] Error: Passenger ID " << t << " not found.\n";
-            return;
+        
+        if (idx == -1) { 
+            cout << "[System] Error: Passenger ID " << t << " not found.\n"; 
+            return; 
         }
-
+        
         for (int i = idx; i < bookingCount - 1; i++) book_ls[i] = book_ls[i + 1];
-        bookingCount--;
+        bookingCount--; 
         rebuildSeatMap();
-
+        
         auto stop = high_resolution_clock::now();
         cout << "Cancellation confirmed. Seat " << book_ls[idx].seat_row << book_ls[idx].seat_col << " is now available.\n";
         cout << "Cancellation Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
@@ -225,7 +197,7 @@ namespace fms::array {
         auto start = high_resolution_clock::now();
         int idx = linearSearchByID(t);
         auto stop = high_resolution_clock::now();
-
+        
         if (idx != -1) {
             cout << "\n-----------------------------\n";
             cout << " PASSENGER FOUND\n";
@@ -244,9 +216,9 @@ namespace fms::array {
     void print_seat() {
 
         cout << "\n" << string(64, '=') << "\n";
-        cout << string(22, ' ') << "FLIGHT SEATING CHART\n";
+        cout << "\t\t   FLIGHT SEATING CHART\n";
         cout << string(64, '=') << "\n";
-        cout << "      A        B        C        D        E        F\n";
+        cout << "      A       B       C       D       E       F\n";
 
         auto start = high_resolution_clock::now();
         for (int r = 1; r <= 30; r++) {
@@ -272,25 +244,25 @@ namespace fms::array {
     void print_passenger() {
         auto start = high_resolution_clock::now();
         BookItem m[MAX_BOOKING]; int a = 0;
-
-        for (int r = 1; r <= 30; r++)
-            for (int c = 0; c < 6; c++)
+        
+        for (int r = 1; r <= 30; r++) 
+            for (int c = 0; c < 6; c++) 
                 if (seat_map[r][c] != -1) m[a++] = book_ls[seat_map[r][c]];
-
+                
         bubbleSortByID(m, a);
         auto stop = high_resolution_clock::now();
 
         cout << "\n" << string(64, '=') << "\n";
-        cout << string(23, ' ') << "PASSENGER MANIFEST\n";
+        cout << "\t\t   PASSENGER MANIFEST\n";
         cout << string(64, '=') << "\n";
         cout << left << setw(8) << "Seat" << setw(12) << "ID" << setw(25) << "Name" << "Class\n";
         cout << string(64, '-') << "\n";
 
         for (int i = 0; i < a; i++) {
             string seat = to_string(m[i].seat_row) + m[i].seat_col;
-            cout << left << setw(8) << seat
-                 << setw(12) << m[i].psg_id
-                 << setw(25) << m[i].psg_name
+            cout << left << setw(8) << seat 
+                 << setw(12) << m[i].psg_id 
+                 << setw(25) << m[i].psg_name 
                  << (m[i].seat_class == 'F' ? "First" : (m[i].seat_class == 'B' ? "Business" : "Economy")) << "\n";
         }
         cout << string(64, '=') << "\n";
@@ -313,7 +285,7 @@ namespace fms::array {
         }
         for (int r = 0; r <= 30; r++) for (int c = 0; c < 6; c++) seat_map[r][c] = -1;
         auto stop = high_resolution_clock::now();
-
+        
         cout << "Dispatch Complete. Session cleared and records marked.\n";
         cout << "Dispatch Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n";
     }
