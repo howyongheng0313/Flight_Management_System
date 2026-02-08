@@ -446,18 +446,32 @@ void print_passenger() {
     }
 
     void dispatch() {
+        seat_map.clear();
         BookItem *curr = book_ls.book_head;
+        int dispatched_count = 0;
 
         while (curr) {
-            BookItem *next = curr->next;
-            delete curr; 
-            curr = next;
+            BookItem *next_node = curr->next; 
+            if (curr->is_assigned) {
+                if (curr->prev) {
+                    curr->prev->next = curr->next;
+                } else {
+                    book_ls.book_head = curr->next; 
+                }
+
+                if (curr->next) {
+                    curr->next->prev = curr->prev;
+                } else {
+                    book_ls.book_tail = curr->prev; 
+                }
+                delete curr;
+                dispatched_count++;
+            }             
+            curr = next_node;
         }
 
-        book_ls.book_head = nullptr;
-        book_ls.book_tail = nullptr;
-        seat_map.clear();
-        cout << "Dispatch Complete. All passengers removed and session cleared." << endl << endl;
+        cout << "Dispatch Complete.\n";
+        cout << dispatched_count << " passengers dispatched.\n";
     }
 
     void teardown() {
