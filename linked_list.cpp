@@ -105,51 +105,34 @@ namespace fms::llist {
 
     struct SeatMap {
         SeatRow *map_head;
-        SeatRow *first_head;
-        SeatRow *business_head;
-        SeatRow *economy_head;
 
         bool linear_search_empty_seat(char seatclass, int &out_row, char &out_col) {
-            SeatRow *class_head;
             int min_row, max_row;
             switch (seatclass) {
-                case 'F':
-                    class_head = first_head;
-                    min_row = 1;
-                    max_row = 3;
-                    break;
-                case 'B':
-                    class_head = business_head;
-                    min_row = 4;
-                    max_row = 10;
-                    break;
-                case 'E':
-                    class_head = economy_head;
-                    min_row = 11;
-                    max_row = 30;
-                    break;
+                case 'F': min_row = 1; max_row = 3; break;
+                case 'B': min_row = 4; max_row = 10; break;
+                case 'E': min_row = 11; max_row = 30; break;
             }
 
-            if (!class_head) {
-                out_row = min_row;
+            SeatRow *curr_row = map_head;
+            while (curr_row && curr_row->row < min_row) {
+                curr_row = curr_row->next;
+            }
+
+            out_row = min_row;
+            while (out_row <= max_row) {
                 out_col = 'A';
-                return true;
-            }
+                if (!curr_row || curr_row->row > out_row) return true;
 
-            SeatRow *curr_row = class_head;
-            while (curr_row && curr_row->row <= max_row) {
                 Seat *curr_seat = curr_row->row_head;
-
-                out_col = 'A';
                 while (curr_seat && curr_seat->col == out_col) {
                     out_col++;
                     curr_seat = curr_seat->next;
                 }
-                if (out_col < 'G') {
-                    out_row = curr_row->row;
-                    return true;
-                }
 
+                if (out_col < 'G') return true;
+
+                out_row++;
                 curr_row = curr_row->next;
             }
 
@@ -157,44 +140,37 @@ namespace fms::llist {
         }
 
         void insert_seat(Seat &seat) {
-            // TODO: insert a seat, if the row is not existing, create a new row;
-            SeatRow *class_head;
-            switch (seat.seatclass) {
-                case 'F': class_head = first_head; break;
-                case 'B': class_head = business_head; break;
-                case 'E': class_head = economy_head; break;
-            }
-
-            if (!map_head) {
-                map_head = new SeatRow();
-                map_head->row_head = nullptr;
-                map_head->row_tail = nullptr;
-                map_head->next = nullptr;
-                map_head->row = seat.row;
-            }
-
-            if (!class_head) {
-                class_head = map_head;
-            }
-
-            SeatRow *curr_row = class_head;
-            while (curr_row->next && curr_row->next->row <= seat.row) {
+            SeatRow *prev_row = nullptr;
+            SeatRow *curr_row = map_head;
+            while (curr_row && curr_row->row < seat.row) {
+                prev_row = curr_row;
                 curr_row = curr_row->next;
             }
 
-            if (curr_row->row < seat.row) {
+            if (!curr_row || curr_row->row > seat.row) {
                 SeatRow *new_row = new SeatRow();
                 new_row->row_head = nullptr;
                 new_row->row_tail = nullptr;
-                new_row->next = curr_row->next;
+                new_row->next = curr_row;
                 new_row->row = seat.row;
 
-                curr_row->next = new_row;
                 curr_row = new_row;
             }
 
+            if (prev_row) prev_row->next = curr_row;
+            else map_head = curr_row;
+
+            Seat *prev_seat = nullptr;
             Seat *curr_seat = curr_row->row_head;
-            if (!curr_seat) {}
+            while (curr_seat && curr_seat->col < seat.col) {
+                prev_seat = curr_seat;
+                curr_seat = curr_seat->next;
+            }
+
+            seat.next = curr_seat;
+
+            if (prev_seat) prev_seat->next = &seat;
+            else curr_row->row_head = &seat;
         }
     };
 
@@ -208,7 +184,7 @@ namespace fms::llist {
     }
 
     BookList book_ls { nullptr, nullptr };
-    SeatMap seat_map { nullptr, nullptr, nullptr, nullptr };
+    SeatMap seat_map { nullptr };
 
     void setup() {
         string row;
@@ -282,7 +258,7 @@ namespace fms::llist {
         booking->seat.col = assign_col;
 
         book_ls.push(booking);
-        seat_map.insert_seat(booking->seat);  // TODO: fix the function
+        seat_map.insert_seat(booking->seat);
     }
 
     void cancel() {}
@@ -314,8 +290,5 @@ namespace fms::llist {
             curr_row = next;
         }
         seat_map.map_head = nullptr;
-        seat_map.first_head = nullptr;
-        seat_map.business_head = nullptr;
-        seat_map.economy_head = nullptr;
     }
 }
