@@ -36,21 +36,16 @@ namespace fms::menu {
         time_point<high_resolution_clock> setup_stop;
         switch (choice) {
             case '1':
-                setup_start = high_resolution_clock::now();
                 array::setup();
-                setup_stop = high_resolution_clock::now();
                 next_fn = array_m;
                 break;
             case '2':
-                setup_start = high_resolution_clock::now();
                 llist::setup();
-                setup_stop = high_resolution_clock::now();
                 next_fn = llist_m;
                 break;
             case 'x':
                 return;
         }
-        cout << "[setup_dur]: " << duration_cast<microseconds>(setup_stop - setup_start).count() << endl;
     }
 
     void array_m(void *next_m) {
