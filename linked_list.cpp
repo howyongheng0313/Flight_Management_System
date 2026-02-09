@@ -548,6 +548,7 @@ namespace fms::llist {
         }
         book_ls.book_head = nullptr;
         book_ls.book_tail = nullptr;
+        book_ls.last_id = 0;
 
         SeatRow *curr_row = seat_map.map_head;
         while (curr_row) {
