@@ -100,16 +100,6 @@ namespace fms::llist {
             return nullptr;
         }
 
-        BookItem *linear_search_by_seat(int row, char col, BookItem *entry) {
-            BookItem *curr = entry ? entry : book_head;
-            while (curr) {
-                if (curr->seat.row == row && curr->seat.col == col)
-                    return curr;
-                curr = curr->next;
-            }
-            return nullptr;
-        }
-
         void bubble_sort_by_id() {
             BookItem *break_ptr = book_tail;
             while (break_ptr) {
@@ -566,5 +556,6 @@ namespace fms::llist {
             curr_row = next;
         }
         seat_map.map_head = nullptr;
+        seat_map.arrived = 0;
     }
 }

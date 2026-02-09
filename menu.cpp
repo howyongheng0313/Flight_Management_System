@@ -78,7 +78,7 @@ namespace fms::menu {
             case '5': llist::print_seat(); break;
             case '6': llist::print_passenger(); break;
             case '7': llist::dispatch(); break;
-            case 'x': next_fn = main_m; return;
+            case 'x': llist::teardown(); next_fn = main_m; return;
         }
 
         next_fn = llist_m;
