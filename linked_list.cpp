@@ -14,6 +14,7 @@ using std::cout,
       std::min,
       std::setw,
       std::left,
+      std::swap,
       std::string,
       std::ifstream,
       std::stringstream;
@@ -48,7 +49,7 @@ namespace fms::llist {
         int last_id = 0;
 
         void push(BookItem *booking) {
-            booking->prev = book_head;
+            booking->prev = book_tail;
             booking->next = nullptr;
 
             if (!book_head) {
@@ -84,7 +85,7 @@ namespace fms::llist {
             else book_head = booking->next;
 
             if (booking->next) booking->next->prev = booking->prev;
-            else book_head = booking->prev;
+            else book_tail = booking->prev;
 
             delete booking;
         }
@@ -108,6 +109,31 @@ namespace fms::llist {
             }
             return nullptr;
         }
+
+        void bubble_sort_by_id() {
+            BookItem *break_ptr = book_tail;
+            while (break_ptr) {
+                BookItem *last = nullptr;
+                BookItem *curr = book_head;
+                while (curr != break_ptr && last != break_ptr) {
+                    if (curr->psg_id <= curr->next->psg_id) {
+                        curr = curr->next;
+                        continue;
+                    }
+                    last = curr->next;
+                    if (curr->prev) curr->prev->next = last;
+                    else book_head = last;
+
+                    if (last->next) last->next->prev = curr;
+                    else book_tail = curr;
+
+                    swap(curr->prev, last->next);  // A-[ B ]-C  TO  A-[ C ]-B
+                    swap(curr->prev, curr->next);  // B-[ C ]-D      C-[ B ]-D
+                    swap(last->prev, last->next);
+                }
+                break_ptr = last;
+            }
+        }
     };
 
     struct SeatRow {
@@ -118,6 +144,7 @@ namespace fms::llist {
 
     struct SeatMap {
         SeatRow *map_head;
+        int arrived = 0;
 
         bool linear_search_empty_seat(char seatclass, int &out_row, char &out_col) {
             int min_row, max_row;
@@ -179,7 +206,9 @@ namespace fms::llist {
                 curr_seat = curr_seat->next;
             }
 
+            if (curr_seat && curr_seat->col == seat.col) return;
             seat.next = curr_seat;
+            arrived++;
 
             if (prev_seat) prev_seat->next = &seat;
             else curr_row->row_head = &seat;
@@ -203,6 +232,7 @@ namespace fms::llist {
             }
 
             if (!curr_seat || curr_seat != &seat) return;
+            arrived--;
 
             if (prev_seat) prev_seat->next = curr_seat->next;
             else curr_row->row_head = curr_seat->next;
@@ -264,9 +294,8 @@ namespace fms::llist {
         csvin.close();
 
         auto duration = duration_cast<microseconds>(stop - start);
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
-             << "[System] Space Complexity: O(n) | Extra Space: O(1)" << endl
-             << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n) | Space Complexity: O(n)" << endl << endl;
     }
 
     void reserve() {
@@ -308,10 +337,9 @@ namespace fms::llist {
         auto duration = duration_cast<microseconds>(stop - start);
 
         cout << "Reservation Successful! ID: " << booking->psg_id << " | Seat: " << assign_row << assign_col << endl;
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
-             << "[System] Space Complexity (Search Empty Seat): O(Rmin + Rtar*C) | Extra Space: O(1)" << endl
-             << "         Space Complexity (Insert Seat): O(R + C) | Extra Space: O(1)" << endl
-             << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(Rmin + Rtar*C) | Space Complexity: O(1) (Search Empty Seat)" << endl
+             << "         Time Complexity: O(R + C) | Space Complexity: O(n) (Insert Seat)" << endl << endl;
     }
 
     void cancel() {
@@ -336,11 +364,25 @@ namespace fms::llist {
 
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
-             << "[System] Space Complexity: O(N + R + C) | Extra Space: O(1)";
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(N+R+C) | Space Complexity: O(1)" << endl << endl;
     }
 
-    void auto_fill() {}
+    void auto_fill() {
+        auto start = high_resolution_clock::now();
+
+        BookItem *curr_book = book_ls.book_head;
+        while (curr_book && seat_map.arrived < 180) {
+            seat_map.insert_seat(curr_book->seat);
+            curr_book = curr_book->next;
+        }
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Auto-fill seating complete." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
+    }
 
     void lookup() {
         string target_id;
@@ -364,9 +406,8 @@ namespace fms::llist {
             cout << "Passenger not found." << endl;
         }
 
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
-             << "[System] Space Complexity: O(n) | Extra Space: O(1)" << endl
-             << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n) | Space Complexity: O(1)" << endl << endl;
     }
 
     void print_seat() {
@@ -432,7 +473,7 @@ namespace fms::llist {
         auto duration = duration_cast<microseconds>(stop - start);
 
         cout << endl;
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
     }
 
     void print_passenger() {
@@ -449,8 +490,7 @@ namespace fms::llist {
             }
             curr_row = curr_row->next;
         }
-
-        // TODO: psg_ls.sort_by_id();
+        psg_ls.bubble_sort_by_id();
 
         auto stop = high_resolution_clock::now();
 
@@ -478,9 +518,8 @@ namespace fms::llist {
         cout << string(64, '=') << endl;
 
         auto duration = duration_cast<microseconds>(stop - start);
-        cout << "[Systen] Execution Time: " << duration.count() << " µs." << endl
-        // TODO: count the Space Complexity;
-             << "[System] Space Complexity: O(?) | Extra Space: O(?)" << endl << endl;
+        cout << "[Systen] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n(n-1) / 2) | Space Complexity: O(n)" << endl << endl;
     }
 
     void dispatch() {
@@ -501,12 +540,13 @@ namespace fms::llist {
             curr_row = next_row;
         }
         seat_map.map_head = nullptr;
+        seat_map.arrived = 0;
 
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
 
         cout << "Dispatch Complete. Session cleared and records marked." << endl;
-        cout << "[System] Execution Time: " << duration.count() << " µs." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
     }
 
     void teardown() {
