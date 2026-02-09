@@ -214,7 +214,7 @@ namespace fms::llist {
     void reserve() {
         char sc;
         do {
-            cout << "Select Class (F/B/E): ";
+            cout << "Select Class (F = First / B = Business / E = Economy): ";
             cin >> sc;
             sc = std::toupper(sc);
         } while (sc != 'F' && sc != 'B' && sc != 'E');
@@ -276,31 +276,48 @@ namespace fms::llist {
     }
 
     void print_seat() {
+        auto start = high_resolution_clock::now();
         cout << "\n" << string(64, '=') << "\n";
         cout << "\t\t   FLIGHT SEATING CHART\n";
         cout << string(64, '=') << "\n";
         cout << "      A       B       C       D       E       F\n";
 
+        SeatRow *curr_row_node = seat_map.map_head;
+
         for (int r = 1; r <= 30; r++) {
             cout << std::setw(2) << r << " ";
+      
+            while (curr_row_node && curr_row_node->row < r) {
+                curr_row_node = curr_row_node->next;
+            }
+
+            Seat *curr_seat_node = nullptr;
+            if (curr_row_node && curr_row_node->row == r) {
+                curr_seat_node = curr_row_node->row_head;
+            }
+
             for (char c = 'A'; c <= 'F'; c++) {
-                BookItem *found = book_ls.book_head;
                 string id = "------";
-                while (found) {
-                    if (found->seat.row == r && found->seat.col == c && found->is_assigned) {
-                        id = found->psg_id;
-                        break;
-                    }
-                    found = found->next;
+
+                while (curr_seat_node && curr_seat_node->col < c) {
+                    curr_seat_node = curr_seat_node->next;
                 }
+                if (curr_seat_node && curr_seat_node->col == c) {
+                    if (curr_seat_node->passenger) {
+                        id = curr_seat_node->passenger->psg_id;
+                    }
+                }
+
                 cout << "[" << std::setw(6) << id << "]";
             }
             cout << endl;
         }
         cout << string(64, '=') << "\n\n";
+        auto stop = high_resolution_clock::now();
+        cout << "Print Seating Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n\n";
     }
 
-void print_passenger() {
+    void print_passenger() {
         cout << "Do you want to sort by:\n";
         cout << "1. Passenger ID\n";
         cout << "2. Seat\n";
@@ -318,6 +335,7 @@ void print_passenger() {
             cout << "Invalid option. Defaulting to Passenger ID.\n";
             criteria = 1;
         }
+        auto start = high_resolution_clock::now();
 
         struct TempNode {
             string id;
@@ -331,7 +349,6 @@ void print_passenger() {
         TempNode *head = nullptr;
         TempNode *tail = nullptr;
         BookItem *curr = book_ls.book_head;
-
 
         while (curr) {
             if (curr->is_assigned) {
@@ -356,28 +373,26 @@ void print_passenger() {
         }
 
         if (!head) {
+            auto stop = high_resolution_clock::now();
             cout << "[System] No passengers found in manifest.\n";
+            cout << "Manifest Sorting Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n\n";
             return;
         }
 
         bool swapped;
         TempNode *ptr1;
         TempNode *lptr = nullptr; 
-
         do {
             swapped = false;
             ptr1 = head;
-
             while (ptr1->next != lptr) {
                 bool needSwap = false;
-
                 if (criteria == 1) {
                     try {
                         if (std::stoll(ptr1->id) > std::stoll(ptr1->next->id)) {
                             needSwap = true;
                         }
                     } catch (...) {
-
                         if (ptr1->id > ptr1->next->id) needSwap = true;
                     }
                 } 
@@ -395,7 +410,6 @@ void print_passenger() {
                         needSwap = true;
                     }
                 }
-
                 if (needSwap) {
                     std::swap(ptr1->id, ptr1->next->id);
                     std::swap(ptr1->name, ptr1->next->name);
@@ -418,7 +432,6 @@ void print_passenger() {
              << std::setw(25) << "Name" 
              << "Class\n";
         cout << string(64, '-') << "\n";
-
         TempNode *t = head;
         while (t) {
             string fullClass;
@@ -428,20 +441,16 @@ void print_passenger() {
                 case 'E': fullClass = "Economy"; break;
                 default: fullClass = "Unknown";
             }
-
             string seatStr = to_string(t->row) + t->col;
-
             cout << std::left
                  << std::setw(8) << seatStr
                  << std::setw(12) << t->id
                  << std::setw(25) << t->name
                  << fullClass << "\n";
-
             TempNode *toDelete = t;
             t = t->next;
             delete toDelete;
         }
-
         cout << string(64, '=') << "\n\n";
     }
 
