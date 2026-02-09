@@ -1,32 +1,33 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <sstream>
 #include <chrono>
-#include <iomanip>
-#include <limits>
 #include "include/linked_list.hpp"
 
-using std::cout;
-using std::cin;
-using std::endl;
-using std::getline;
-using std::stoi;
-using std::to_string;
-using std::string;
-using std::ifstream;
-using std::stringstream;
-
-using std::chrono::high_resolution_clock;
-using std::chrono::microseconds;
-using std::chrono::duration_cast;
+using std::cout,
+      std::cin,
+      std::endl,
+      std::getline,
+      std::stoi,
+      std::to_string,
+      std::min,
+      std::setw,
+      std::left,
+      std::swap,
+      std::string,
+      std::ifstream,
+      std::stringstream;
+using std::chrono::high_resolution_clock,
+      std::chrono::microseconds,
+      std::chrono::duration_cast;
 
 namespace fms::llist {
-
     struct Seat {
+        BookItem *passenger;
         int row;
         char col;
         char seatclass;
-        struct BookItem *passenger;
         Seat *next;
     };
 
@@ -34,32 +35,49 @@ namespace fms::llist {
         string psg_id;
         string psg_name;
         Seat seat;
-        bool is_assigned;
-        bool is_new_reservation;
-        bool was_dispatched;
         BookItem *prev;
         BookItem *next;
 
         BookItem() {
             seat.passenger = this;
-            seat.next = nullptr;
         }
     };
 
     struct BookList {
-        BookItem *book_head = nullptr;
-        BookItem *book_tail = nullptr;
-        int last_id = 100000;
+        BookItem *book_head;
+        BookItem *book_tail;
+        int last_id = 0;
 
-        void push(BookItem *node) {
-            node->prev = book_tail;
-            node->next = nullptr;
+        void push(BookItem *booking) {
+            booking->prev = book_tail;
+            booking->next = nullptr;
+
             if (!book_head) {
-                book_head = book_tail = node;
+                book_head = booking;
+                book_tail = booking;
                 return;
             }
-            book_tail->next = node;
-            book_tail = node;
+
+            book_tail->next = booking;
+            book_tail = booking;
+        }
+
+        void insert(BookItem *lead, BookItem *booking) {
+            booking->prev = lead;
+
+            if (!lead) {
+                book_head = booking;
+                book_tail = booking;
+                booking->next = nullptr;
+                return;
+            }
+
+            if (!lead->next) {
+                book_tail = booking;
+            }
+
+            booking->next = lead->next;
+            lead->next = booking;
         }
 
         void remove(BookItem *booking) {
@@ -67,92 +85,133 @@ namespace fms::llist {
             else book_head = booking->next;
 
             if (booking->next) booking->next->prev = booking->prev;
-            else book_head = booking->prev;
+            else book_tail = booking->prev;
 
             delete booking;
         }
 
-        BookItem *linear_search_by_id(const string &id) {
-            BookItem *curr = book_head;
+        BookItem *linear_search_by_id(const string& target_id, BookItem *entry) {
+            BookItem *curr = entry ? entry : book_head;
             while (curr) {
-                if (curr->psg_id == id) return curr;
+                if (curr->psg_id == target_id)
+                    return curr;
                 curr = curr->next;
             }
             return nullptr;
+        }
+
+        BookItem *linear_search_by_seat(int row, char col, BookItem *entry) {
+            BookItem *curr = entry ? entry : book_head;
+            while (curr) {
+                if (curr->seat.row == row && curr->seat.col == col)
+                    return curr;
+                curr = curr->next;
+            }
+            return nullptr;
+        }
+
+        void bubble_sort_by_id() {
+            BookItem *break_ptr = book_tail;
+            while (break_ptr) {
+                BookItem *last = nullptr;
+                BookItem *curr = book_head;
+                while (curr != break_ptr && last != break_ptr) {
+                    if (curr->psg_id <= curr->next->psg_id) {
+                        curr = curr->next;
+                        continue;
+                    }
+                    last = curr->next;
+                    if (curr->prev) curr->prev->next = last;
+                    else book_head = last;
+
+                    if (last->next) last->next->prev = curr;
+                    else book_tail = curr;
+
+                    swap(curr->prev, last->next);  // A-[ B ]-C  TO  A-[ C ]-B
+                    swap(curr->prev, curr->next);  // B-[ C ]-D      C-[ B ]-D
+                    swap(last->prev, last->next);
+                }
+                break_ptr = last;
+            }
         }
     };
 
     struct SeatRow {
         Seat *row_head;
-        SeatRow *next;
         int row;
+        SeatRow *next;
     };
 
     struct SeatMap {
-        SeatRow *map_head = nullptr;
+        SeatRow *map_head;
+        int arrived = 0;
 
-        bool linear_search_empty_seat(char cls, int &out_row, char &out_col) {
-            int min_row = (cls == 'F' ? 1 : (cls == 'B' ? 4 : 11));
-            int max_row = (cls == 'F' ? 3 : (cls == 'B' ? 10 : 30));
-            SeatRow *curr_row = map_head;
-
-            for (int r = min_row; r <= max_row; r++) {
-                SeatRow *row_ptr = curr_row;
-                while (row_ptr && row_ptr->row < r) row_ptr = row_ptr->next;
-
-                char col = 'A';
-                Seat *seat_ptr = (row_ptr && row_ptr->row == r) ? row_ptr->row_head : nullptr;
-
-                while (seat_ptr && seat_ptr->col == col) {
-                    col++;
-                    seat_ptr = seat_ptr->next;
-                }
-
-                if (col <= 'F') {
-                    out_row = r;
-                    out_col = col;
-                    return true;
-                }
+        bool linear_search_empty_seat(char seatclass, int &out_row, char &out_col) {
+            int min_row, max_row;
+            switch (seatclass) {
+                case 'F': min_row = 1; max_row = 3; break;
+                case 'B': min_row = 4; max_row = 10; break;
+                case 'E': min_row = 11; max_row = 30; break;
             }
+
+            SeatRow *curr_row = map_head;
+            while (curr_row && curr_row->row < min_row) {
+                curr_row = curr_row->next;
+            }
+
+            out_row = min_row;
+            while (out_row <= max_row) {
+                out_col = 'A';
+                if (!curr_row || curr_row->row > out_row) return true;
+
+                Seat *curr_seat = curr_row->row_head;
+                while (curr_seat && curr_seat->col == out_col) {
+                    out_col++;
+                    curr_seat = curr_seat->next;
+                }
+
+                if (out_col < 'G') return true;
+
+                out_row++;
+                curr_row = curr_row->next;
+            }
+
             return false;
         }
 
         void insert_seat(Seat &seat) {
             SeatRow *prev_row = nullptr;
             SeatRow *curr_row = map_head;
-
             while (curr_row && curr_row->row < seat.row) {
                 prev_row = curr_row;
                 curr_row = curr_row->next;
             }
 
-            if (!curr_row || curr_row->row != seat.row) {
-                SeatRow *new_row = new SeatRow{nullptr, curr_row, seat.row};
-                if (prev_row) prev_row->next = new_row;
-                else map_head = new_row;
+            if (!curr_row || curr_row->row > seat.row) {
+                SeatRow *new_row = new SeatRow();
+                new_row->row_head = nullptr;
+                new_row->next = curr_row;
+                new_row->row = seat.row;
+
                 curr_row = new_row;
             }
 
-            Seat *prev = nullptr;
-            Seat *curr = curr_row->row_head;
-            while (curr && curr->col < seat.col) {
-                prev = curr;
-                curr = curr->next;
+            if (prev_row) prev_row->next = curr_row;
+            else map_head = curr_row;
+
+            Seat *prev_seat = nullptr;
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat && curr_seat->col < seat.col) {
+                prev_seat = curr_seat;
+                curr_seat = curr_seat->next;
             }
 
-            seat.next = curr;
-            if (prev) prev->next = &seat;
+            if (curr_seat && curr_seat->col == seat.col) return;
+            seat.next = curr_seat;
+            arrived++;
+
+            if (prev_seat) prev_seat->next = &seat;
             else curr_row->row_head = &seat;
-        }
-
-        void clear() {
-            SeatRow *curr = map_head;
-            while (curr) {
-                SeatRow *next = curr->next;
-                delete curr;
-                curr = next;
-            }
-            map_head = nullptr;
         }
 
         void remove_seat(Seat &seat) {
@@ -173,6 +232,7 @@ namespace fms::llist {
             }
 
             if (!curr_seat || curr_seat != &seat) return;
+            arrived--;
 
             if (prev_seat) prev_seat->next = curr_seat->next;
             else curr_row->row_head = curr_seat->next;
@@ -185,15 +245,8 @@ namespace fms::llist {
         }
     };
 
-    static BookList book_ls;
-    static SeatMap seat_map;
-
-    // =====================================================
-    // 1. HELPER FUNCTIONS
-    // =====================================================
-
-    string class_full_name(char c) {
-        switch (c) {
+    string class_full_name(char seatclass) {
+        switch (seatclass) {
             case 'F': return "First";
             case 'B': return "Business";
             case 'E': return "Economy";
@@ -201,88 +254,92 @@ namespace fms::llist {
         }
     }
 
-    // =====================================================
-    // 2. MAIN FUNCTIONS
-    // =====================================================
+    BookList book_ls { nullptr };
+    SeatMap seat_map { nullptr };
 
     void setup() {
-        teardown();
+        string row;
+        ifstream csvin("./dataset/flight_passenger_data.csv");
+
         auto start = high_resolution_clock::now();
-        ifstream csv("./dataset/flight_passenger_data.csv");
 
-        if (!csv.is_open()) {
-            cout << "Error opening dataset." << endl;
-            return;
+        getline(csvin, row);
+        while (getline(csvin, row)) {
+            stringstream row_stream(row);
+            BookItem *booking = new BookItem();
+            string seat_row;
+            string seat_col;
+            string seat_class;
+
+            getline(row_stream, booking->psg_id, ',');
+            getline(row_stream, booking->psg_name, ',');
+            getline(row_stream, seat_row, ',');
+            getline(row_stream, seat_col, ',');
+            getline(row_stream, seat_class, ',');
+
+            booking->seat.row = stoi(seat_row);
+            booking->seat.col = seat_col[0];
+            booking->seat.seatclass = seat_class[0];
+
+            book_ls.push(booking);
+
+            int num_id = stoi(booking->psg_id);
+            if (num_id > book_ls.last_id) {
+                book_ls.last_id = num_id;
+            }
         }
 
-        string line;
-        getline(csv, line);
-
-        while (getline(csv, line)) {
-            stringstream ss(line);
-            string id, name, srow, scol, scls;
-            getline(ss, id, ',');
-            getline(ss, name, ',');
-            getline(ss, srow, ',');
-            getline(ss, scol, ',');
-            getline(ss, scls, ',');
-
-            BookItem *node = new BookItem();
-            node->psg_id = id;
-            node->psg_name = name;
-            node->seat.row = stoi(srow);
-            node->seat.col = scol[0];
-            node->seat.seatclass = scls[0];
-            node->is_assigned = false;
-            node->is_new_reservation = false;
-            node->was_dispatched = false;
-
-            book_ls.push(node);
-
-            int num = stoi(id);
-            if (num > book_ls.last_id) book_ls.last_id = num;
-        }
-
-        csv.close();
         auto stop = high_resolution_clock::now();
-        cout << "[System] Setup Complete. Loaded records." << endl;
-        cout << "[System] Setup Execution Time: "
-             << duration_cast<microseconds>(stop - start).count() << " us" << endl << endl;
+
+        csvin.close();
+
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n) | Space Complexity: O(n)" << endl << endl;
     }
 
     void reserve() {
-        char sc;
-        do {
-            cout << "Select Class (F = First / B = Business / E = Economy): ";
-            cin >> sc;
-            sc = std::toupper(sc);
-        } while (sc != 'F' && sc != 'B' && sc != 'E');
+        char seatclass;
+        cout << "Select class (F = First / B = Business / E = Economy): ";
+        cin >> seatclass;
+        seatclass = toupper(seatclass);
 
-        cin.ignore();
-        cout << "Enter Passenger Name: ";
-        string name; getline(cin, name);
-
-        int r; char c;
-        if (!seat_map.linear_search_empty_seat(sc, r, c)) {
-            cout << "No seats available in " << class_full_name(sc) << " class." << endl;
+        if (seatclass != 'F' && seatclass != 'B' && seatclass != 'E') {
+            cout << "Invalid Class." << endl;
             return;
         }
 
-        BookItem *node = new BookItem();
-        node->psg_id = to_string(++book_ls.last_id);
-        node->psg_name = name;
-        node->seat.row = r;
-        node->seat.col = c;
-        node->seat.seatclass = sc;
-        node->is_assigned = true;
-        node->is_new_reservation = true;
-        node->was_dispatched = false;
+        string name;
+        cout << "Enter Passenger Name: ";
+        cin.ignore();
+        getline(cin, name);
 
-        book_ls.push(node);
-        seat_map.insert_seat(node->seat);
+        auto start = high_resolution_clock::now();
 
-        cout << "Reservation Successful! ID: " << node->psg_id
-             << " | Seat: " << r << c << endl << endl;
+        int assign_row;
+        char assign_col;
+        if (!seat_map.linear_search_empty_seat(seatclass, assign_row, assign_col)) {
+            cout << "No available seats in " << class_full_name(seatclass) << " class." << endl;
+            return;
+        }
+
+        BookItem *booking = new BookItem();
+        booking->psg_id = to_string(++book_ls.last_id);
+        booking->psg_name = name;
+        booking->seat.seatclass = seatclass;
+        booking->seat.row = assign_row;
+        booking->seat.col = assign_col;
+
+        book_ls.push(booking);
+        seat_map.insert_seat(booking->seat);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Reservation Successful! ID: " << booking->psg_id << " | Seat: " << assign_row << assign_col << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(Rmin + Rtar*C) | Space Complexity: O(1) (Search Empty Seat)" << endl
+             << "         Time Complexity: O(R + C) | Space Complexity: O(n) (Insert Seat)" << endl << endl;
     }
 
     void cancel() {
@@ -308,253 +365,206 @@ namespace fms::llist {
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         cout << "[System] Execution Time: " << duration.count() << " us." << endl
-             << "[System] Space Complexity: O(N + R + C) | Extra Space: O(1)";
+             << "[System] Time Complexity: O(N+R+C) | Space Complexity: O(1)" << endl << endl;
     }
 
-    void auto_fill() {}
-
-    void lookup() {
-        string id;
-        cout << "Enter Passenger ID: ";
-        cin >> id;
-
+    void auto_fill() {
         auto start = high_resolution_clock::now();
-        BookItem *node = book_ls.linear_search_by_id(id);
-        auto stop = high_resolution_clock::now();
 
-        if (!node) {
-            cout << "Passenger not found." << endl;
-            return;
+        BookItem *curr_book = book_ls.book_head;
+        while (curr_book && seat_map.arrived < 180) {
+            seat_map.insert_seat(curr_book->seat);
+            curr_book = curr_book->next;
         }
 
-        cout << "\n-----------------------------\n";
-        cout << " PASSENGER FOUND\n";
-        cout << "-----------------------------\n";
-        cout << " Name  : " << node->psg_name << endl;
-        cout << " Seat  : " << node->seat.row << node->seat.col << endl;
-        cout << " Class : " << class_full_name(node->seat.seatclass) << endl;
-        cout << "-----------------------------\n";
-        cout << "Lookup Execution Time: "
-             << duration_cast<microseconds>(stop - start).count() << " us\n\n";
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Auto-fill seating complete." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
+    }
+
+    void lookup() {
+        string target_id;
+        cout << "Enter Passenger ID: ";
+        cin >> target_id;
+
+        auto start = high_resolution_clock::now();
+        BookItem *target = book_ls.linear_search_by_id(target_id, nullptr);
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        if (target) {
+            cout << "-----------------------------" << endl
+                 << " PASSENGER FOUND" << endl
+                 << "-----------------------------" << endl
+                 << " Name  : " << target->psg_name << endl
+                 << " Seat  : " << target->seat.row << target->seat.col << endl
+                 << " Class : " << class_full_name(target->seat.seatclass) << endl
+                 << "-----------------------------" << endl;
+        } else {
+            cout << "Passenger not found." << endl;
+        }
+
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n) | Space Complexity: O(1)" << endl << endl;
     }
 
     void print_seat() {
+        cout << string(64, '=') << endl
+             << string(22, ' ') << "FLIGHT SEATING CHART" << endl
+             << string(64, '=') << endl
+             << "      A        B        C        D        E        F" << endl;
+
         auto start = high_resolution_clock::now();
-        cout << "\n" << string(64, '=') << "\n";
-        cout << "\t\t   FLIGHT SEATING CHART\n";
-        cout << string(64, '=') << "\n";
-        cout << "      A       B       C       D       E       F\n";
 
-        SeatRow *curr_row_node = seat_map.map_head;
-
-        for (int r = 1; r <= 30; r++) {
-            cout << std::setw(2) << r << " ";
-      
-            while (curr_row_node && curr_row_node->row < r) {
-                curr_row_node = curr_row_node->next;
-            }
-
-            Seat *curr_seat_node = nullptr;
-            if (curr_row_node && curr_row_node->row == r) {
-                curr_seat_node = curr_row_node->row_head;
-            }
-
-            for (char c = 'A'; c <= 'F'; c++) {
-                string id = "------";
-
-                while (curr_seat_node && curr_seat_node->col < c) {
-                    curr_seat_node = curr_seat_node->next;
+        int next_class = 1;
+        int row_count = 1;
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            if (row_count >= next_class) {
+                if (next_class == 1) {
+                    cout << endl << "--- [ FIRST CLASS (Rows 1-3) ] ---" << endl;
+                    next_class = 4;
+                } else if (next_class == 4) {
+                    cout << endl << "--- [ BUSINESS CLASS (Rows 4-10) ] ---" << endl;
+                    next_class = 11;
+                } else if (next_class == 11) {
+                    cout << endl << "--- [ ECONOMY CLASS (Rows 11-30) ] ---" << endl;
+                    next_class = 31;
                 }
-                if (curr_seat_node && curr_seat_node->col == c) {
-                    if (curr_seat_node->passenger) {
-                        id = curr_seat_node->passenger->psg_id;
-                    }
-                }
-
-                cout << "[" << std::setw(6) << id << "]";
             }
+
+            if (row_count < curr_row->row) {
+                cout << "..." << endl;
+                row_count = min(curr_row->row, next_class);
+                continue;
+            }
+
+            cout << setw(2) << row_count;
+
+            char col_count = 'A';
+            Seat *curr_seat = curr_row->row_head;
+            while (col_count < 'G') {
+                if (curr_seat && curr_seat->col == col_count) {
+                    cout << " [" << curr_seat->passenger->psg_id << "]";
+                    curr_seat = curr_seat->next;
+                } else {
+                    cout << " [------]";
+                }
+                col_count++;
+            }
+
             cout << endl;
+            curr_row = curr_row->next;
+            row_count++;
         }
-        cout << string(64, '=') << "\n\n";
+
+        switch (next_class) {
+            case 1:
+                cout << endl << "--- [ FIRST CLASS (Rows 1-3) ] ---" << endl << "..." << endl;
+            case 4:
+                cout << endl << "--- [ BUSINESS CLASS (Rows 4-10) ] ---" << endl << "..." << endl;
+            case 11:
+                cout << endl << "--- [ ECONOMY CLASS (Rows 11-30) ] ---" << endl << "..." << endl;
+        }
+
         auto stop = high_resolution_clock::now();
-        cout << "Print Seating Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n\n";
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
     }
 
     void print_passenger() {
-        cout << "Do you want to sort by:\n";
-        cout << "1. Passenger ID\n";
-        cout << "2. Seat\n";
-        cout << "3. Passenger's Name\n";
-        cout << "Select option: ";
+        BookList psg_ls {nullptr, nullptr};
 
-        int criteria;
-        if (!(cin >> criteria)) {
-            cin.clear(); 
-            cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-            criteria = 1;
-        }
-
-        if (criteria < 1 || criteria > 3) {
-            cout << "Invalid option. Defaulting to Passenger ID.\n";
-            criteria = 1;
-        }
         auto start = high_resolution_clock::now();
 
-        struct TempNode {
-            string id;
-            string name;
-            int row;
-            char col;
-            char seatclass;
-            TempNode *next;
-        };
-
-        TempNode *head = nullptr;
-        TempNode *tail = nullptr;
-        BookItem *curr = book_ls.book_head;
-
-        while (curr) {
-            if (curr->is_assigned) {
-                TempNode *newNode = new TempNode{
-                    curr->psg_id,
-                    curr->psg_name,
-                    curr->seat.row,
-                    curr->seat.col,
-                    curr->seat.seatclass,
-                    nullptr
-                };
-
-                if (!head) {
-                    head = newNode;
-                    tail = newNode;
-                } else {
-                    tail->next = newNode;
-                    tail = newNode;
-                }
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat) {
+                psg_ls.push(curr_seat->passenger);
+                curr_seat = curr_seat->next;
             }
-            curr = curr->next;
+            curr_row = curr_row->next;
+        }
+        psg_ls.bubble_sort_by_id();
+
+        auto stop = high_resolution_clock::now();
+
+        cout << endl << string(64, '=') << endl
+             << string(23, ' ') << "PASSENGER MANIFEST" << endl
+             << string(64, '=') << endl
+             << left
+             << setw(8) << "Seat"
+             << setw(12) << "ID"
+             << setw(25) << "Name"
+             << "Class" << endl
+             << string(64, '-') << endl;
+
+        BookItem *curr_psg = psg_ls.book_head;
+        while (curr_psg) {
+            string seat = to_string(curr_psg->seat.row) + curr_psg->seat.col;
+            cout << left
+                 << setw(8) << seat
+                 << setw(12) << curr_psg->psg_id
+                 << setw(25) << curr_psg->psg_name
+                 << class_full_name(curr_psg->seat.seatclass) << endl;
+            curr_psg = curr_psg->next;
         }
 
-        if (!head) {
-            auto stop = high_resolution_clock::now();
-            cout << "[System] No passengers found in manifest.\n";
-            cout << "Manifest Sorting Execution Time: " << duration_cast<microseconds>(stop - start).count() << " us\n\n";
-            return;
-        }
+        cout << string(64, '=') << endl;
 
-        bool swapped;
-        TempNode *ptr1;
-        TempNode *lptr = nullptr; 
-        do {
-            swapped = false;
-            ptr1 = head;
-            while (ptr1->next != lptr) {
-                bool needSwap = false;
-                if (criteria == 1) {
-                    try {
-                        if (std::stoll(ptr1->id) > std::stoll(ptr1->next->id)) {
-                            needSwap = true;
-                        }
-                    } catch (...) {
-                        if (ptr1->id > ptr1->next->id) needSwap = true;
-                    }
-                } 
-                else if (criteria == 2) {
-                    if (ptr1->row > ptr1->next->row) {
-                        needSwap = true;
-                    } else if (ptr1->row == ptr1->next->row) {
-                        if (ptr1->col > ptr1->next->col) {
-                            needSwap = true;
-                        }
-                    }
-                } 
-                else if (criteria == 3) {
-                    if (ptr1->name > ptr1->next->name) {
-                        needSwap = true;
-                    }
-                }
-                if (needSwap) {
-                    std::swap(ptr1->id, ptr1->next->id);
-                    std::swap(ptr1->name, ptr1->next->name);
-                    std::swap(ptr1->row, ptr1->next->row);
-                    std::swap(ptr1->col, ptr1->next->col);
-                    std::swap(ptr1->seatclass, ptr1->next->seatclass);
-                    swapped = true;
-                }
-                ptr1 = ptr1->next;
-            }
-            lptr = ptr1; 
-        } while (swapped);
-
-        cout << "\n" << string(64, '=') << "\n";
-        cout << "                   PASSENGER MANIFEST\n";
-        cout << string(64, '=') << "\n";
-        cout << std::left 
-             << std::setw(8) << "Seat" 
-             << std::setw(12) << "ID" 
-             << std::setw(25) << "Name" 
-             << "Class\n";
-        cout << string(64, '-') << "\n";
-        TempNode *t = head;
-        while (t) {
-            string fullClass;
-            switch(t->seatclass) {
-                case 'F': fullClass = "First"; break;
-                case 'B': fullClass = "Business"; break;
-                case 'E': fullClass = "Economy"; break;
-                default: fullClass = "Unknown";
-            }
-            string seatStr = to_string(t->row) + t->col;
-            cout << std::left
-                 << std::setw(8) << seatStr
-                 << std::setw(12) << t->id
-                 << std::setw(25) << t->name
-                 << fullClass << "\n";
-            TempNode *toDelete = t;
-            t = t->next;
-            delete toDelete;
-        }
-        cout << string(64, '=') << "\n\n";
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[Systen] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Time Complexity: O(n(n-1) / 2) | Space Complexity: O(n)" << endl << endl;
     }
 
     void dispatch() {
-        seat_map.clear();
-        BookItem *curr = book_ls.book_head;
-        int dispatched_count = 0;
+        auto start = high_resolution_clock::now();
 
-        while (curr) {
-            BookItem *next_node = curr->next; 
-            if (curr->is_assigned) {
-                if (curr->prev) {
-                    curr->prev->next = curr->next;
-                } else {
-                    book_ls.book_head = curr->next; 
-                }
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat) {
+                Seat *next_seat = curr_seat->next;
+                BookItem *psg = curr_seat->passenger;
+                book_ls.remove(psg);
+                curr_seat = next_seat;
+            }
 
-                if (curr->next) {
-                    curr->next->prev = curr->prev;
-                } else {
-                    book_ls.book_tail = curr->prev; 
-                }
-                delete curr;
-                dispatched_count++;
-            }             
-            curr = next_node;
+            SeatRow *next_row = curr_row->next;
+            delete curr_row;
+            curr_row = next_row;
         }
+        seat_map.map_head = nullptr;
+        seat_map.arrived = 0;
 
-        cout << "Dispatch Complete.\n";
-        cout << dispatched_count << " passengers dispatched.\n";
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+
+        cout << "Dispatch Complete. Session cleared and records marked." << endl;
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl << endl;
     }
 
     void teardown() {
-        BookItem *curr = book_ls.book_head;
-        while (curr) {
-            BookItem *next = curr->next;
-            delete curr;
-            curr = next;
+        BookItem *curr_book = book_ls.book_head;
+        while (curr_book) {
+            BookItem *next = curr_book->next;
+            delete curr_book;
+            curr_book = next;
         }
         book_ls.book_head = nullptr;
         book_ls.book_tail = nullptr;
-        seat_map.clear();
+
+        SeatRow *curr_row = seat_map.map_head;
+        while (curr_row) {
+            SeatRow *next = curr_row->next;
+            delete curr_row;
+            curr_row = next;
+        }
+        seat_map.map_head = nullptr;
     }
 }
