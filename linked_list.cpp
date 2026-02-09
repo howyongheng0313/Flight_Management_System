@@ -62,6 +62,16 @@ namespace fms::llist {
             book_tail = node;
         }
 
+        void remove(BookItem *booking) {
+            if (booking->prev) booking->prev->next = booking->next;
+            else book_head = booking->next;
+
+            if (booking->next) booking->next->prev = booking->prev;
+            else book_head = booking->prev;
+
+            delete booking;
+        }
+
         BookItem *linear_search_by_id(const string &id) {
             BookItem *curr = book_head;
             while (curr) {
@@ -143,6 +153,35 @@ namespace fms::llist {
                 curr = next;
             }
             map_head = nullptr;
+        }
+
+        void remove_seat(Seat &seat) {
+            SeatRow *prev_row = nullptr;
+            SeatRow *curr_row = map_head;
+            while (curr_row && curr_row->row < seat.row) {
+                prev_row = curr_row;
+                curr_row = curr_row->next;
+            }
+
+            if (!curr_row || curr_row->row != seat.row) return;
+
+            Seat *prev_seat = nullptr;
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat && curr_seat->col < seat.col) {
+                prev_seat = curr_seat;
+                curr_seat = curr_seat->next;
+            }
+
+            if (!curr_seat || curr_seat != &seat) return;
+
+            if (prev_seat) prev_seat->next = curr_seat->next;
+            else curr_row->row_head = curr_seat->next;
+
+            if (!curr_row->row_head) {
+                if (prev_row) prev_row->next = curr_row->next;
+                else map_head = curr_row->next;
+                delete curr_row;
+            }
         }
     };
 
@@ -246,7 +285,31 @@ namespace fms::llist {
              << " | Seat: " << r << c << endl << endl;
     }
 
-    void cancel() {}
+    void cancel() {
+        string target_id;
+        cout << "Enter Passenger ID to Cancel: ";
+        cin >> target_id;
+
+        auto start = high_resolution_clock::now();
+
+        BookItem *curr_book = book_ls.book_head;
+        while (curr_book && curr_book->psg_id != target_id) {
+            curr_book = curr_book->next;
+        }
+
+        if (!curr_book) {
+            cout << "Error: Passenger ID " << target_id << " not found." << endl;
+            return;
+        }
+        seat_map.remove_seat(curr_book->seat);
+        cout << "Cancellation confirmed. Seat " << curr_book->seat.row << curr_book->seat.col << " is now available." << endl;
+        book_ls.remove(curr_book);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[System] Execution Time: " << duration.count() << " us." << endl
+             << "[System] Space Complexity: O(N + R + C) | Extra Space: O(1)";
+    }
 
     void auto_fill() {}
 
