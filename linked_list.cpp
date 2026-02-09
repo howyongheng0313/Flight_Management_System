@@ -79,6 +79,16 @@ namespace fms::llist {
             lead->next = booking;
         }
 
+        void remove(BookItem *booking) {
+            if (booking->prev) booking->prev->next = booking->next;
+            else book_head = booking->next;
+
+            if (booking->next) booking->next->prev = booking->prev;
+            else book_head = booking->prev;
+
+            delete booking;
+        }
+
         BookItem *linear_search_by_id(const string& target_id, BookItem *entry) {
             BookItem *curr = entry ? entry : book_head;
             while (curr) {
@@ -174,6 +184,35 @@ namespace fms::llist {
             if (prev_seat) prev_seat->next = &seat;
             else curr_row->row_head = &seat;
         }
+
+        void remove_seat(Seat &seat) {
+            SeatRow *prev_row = nullptr;
+            SeatRow *curr_row = map_head;
+            while (curr_row && curr_row->row < seat.row) {
+                prev_row = curr_row;
+                curr_row = curr_row->next;
+            }
+
+            if (!curr_row || curr_row->row != seat.row) return;
+
+            Seat *prev_seat = nullptr;
+            Seat *curr_seat = curr_row->row_head;
+            while (curr_seat && curr_seat->col < seat.col) {
+                prev_seat = curr_seat;
+                curr_seat = curr_seat->next;
+            }
+
+            if (!curr_seat || curr_seat != &seat) return;
+
+            if (prev_seat) prev_seat->next = curr_seat->next;
+            else curr_row->row_head = curr_seat->next;
+
+            if (!curr_row->row_head) {
+                if (prev_row) prev_row->next = curr_row->next;
+                else map_head = curr_row->next;
+                delete curr_row;
+            }
+        }
     };
 
     string class_full_name(char seatclass) {
@@ -243,6 +282,7 @@ namespace fms::llist {
 
         string name;
         cout << "Enter Passenger Name: ";
+        cin.ignore();
         getline(cin, name);
 
         auto start = high_resolution_clock::now();
@@ -255,7 +295,7 @@ namespace fms::llist {
         }
 
         BookItem *booking = new BookItem();
-        booking->psg_id = to_string(book_ls.last_id++);
+        booking->psg_id = to_string(++book_ls.last_id);
         booking->psg_name = name;
         booking->seat.seatclass = seatclass;
         booking->seat.row = assign_row;
@@ -274,7 +314,31 @@ namespace fms::llist {
              << endl;
     }
 
-    void cancel() {}
+    void cancel() {
+        string target_id;
+        cout << "Enter Passenger ID to Cancel: ";
+        cin >> target_id;
+
+        auto start = high_resolution_clock::now();
+
+        BookItem *curr_book = book_ls.book_head;
+        while (curr_book && curr_book->psg_id != target_id) {
+            curr_book = curr_book->next;
+        }
+
+        if (!curr_book) {
+            cout << "Error: Passenger ID " << target_id << " not found." << endl;
+            return;
+        }
+        seat_map.remove_seat(curr_book->seat);
+        cout << "Cancellation confirmed. Seat " << curr_book->seat.row << curr_book->seat.col << " is now available." << endl;
+        book_ls.remove(curr_book);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << "[System] Execution Time: " << duration.count() << " µs." << endl
+             << "[System] Space Complexity: O(N + R + C) | Extra Space: O(1)";
+    }
 
     void auto_fill() {}
 
@@ -341,7 +405,7 @@ namespace fms::llist {
             char col_count = 'A';
             Seat *curr_seat = curr_row->row_head;
             while (col_count < 'G') {
-                if (curr_seat && curr_seat->row == col_count) {
+                if (curr_seat && curr_seat->col == col_count) {
                     cout << " [" << curr_seat->passenger->psg_id << "]";
                     curr_seat = curr_seat->next;
                 } else {
@@ -408,6 +472,7 @@ namespace fms::llist {
                  << setw(12) << curr_psg->psg_id
                  << setw(25) << curr_psg->psg_name
                  << class_full_name(curr_psg->seat.seatclass) << endl;
+            curr_psg = curr_psg->next;
         }
 
         cout << string(64, '=') << endl;
@@ -427,14 +492,7 @@ namespace fms::llist {
             while (curr_seat) {
                 Seat *next_seat = curr_seat->next;
                 BookItem *psg = curr_seat->passenger;
-
-                if (psg->prev) psg->prev->next = psg->next;
-                else book_ls.book_head = psg->next;
-
-                if (psg->next) psg->next->prev = psg->prev;
-                else book_ls.book_tail = psg->prev;
-
-                delete psg;
+                book_ls.remove(psg);
                 curr_seat = next_seat;
             }
 
